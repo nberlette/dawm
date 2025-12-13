@@ -2,33 +2,16 @@
 
 /*!
  * Copyright 2025 Nicholas Berlette. All rights reserved. MIT license.
- *
- * File adapted from https://deno.land/x/brotli@v0.1.4/scripts/build.ts
  */
-// deno-lint-ignore-file no-import-prefix no-unused-vars
-import zlib, { constants } from "node:zlib";
+// deno-lint-ignore-file no-import-prefix
 import path from "node:path";
-
 import { $ } from "jsr:@david/dax@0.44.1";
+import process from "node:process";
+import { Buffer } from "node:buffer";
+import { brotliCompressSync, constants } from "node:zlib";
 
 const name = "dawm";
-
-const outDir = "lib";
-const brotliJs = "debrotli.bundle.js";
-const brotliFile = path.join(outDir, brotliJs);
-
-function compress(data: Uint8Array, quality = 11): Uint8Array {
-  const { buffer } = zlib.brotliCompressSync(data, {
-    params: {
-      // we don't use text mode since we're not compressing text
-      [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_GENERIC,
-      [constants.BROTLI_PARAM_QUALITY]: quality,
-      [constants.BROTLI_PARAM_LGWIN]: 22,
-    },
-  });
-  // return a native Uint8Array, not a node Buffer
-  return new Uint8Array(buffer);
-}
+const outDir = "src/wasm";
 
 async function requires(...executables: string[]) {
   const where = Deno.build.os === "windows" ? "where" : "which";
@@ -57,9 +40,10 @@ async function run(msg: string, cmd: string, ...args: string[]) {
     stdout: "inherit",
     env: {
       ...Deno.env.toObject(),
-      WASM_OPT_LEVEL: Deno.env.get("WASM_OPT_LEVEL") ?? "z",
+      WASM_OPT_LEVEL: Deno.env.get("WASM_OPT_LEVEL") ?? "s",
       WASM_OPT_BULK_MEMORY: Deno.env.get("WASM_OPT_BULK_MEMORY") ?? "1",
-      WASM_OPT_EXTRA_ARGS: Deno.env.get("WASM_OPT_EXTRA_ARGS") ?? "",
+      WASM_OPT_EXTRA_ARGS: Deno.env.get("WASM_OPT_EXTRA_ARGS") ??
+        "--all-features",
     },
   }).spawn();
 
@@ -87,31 +71,6 @@ function err(text: string): never {
   return Deno.exit(1);
 }
 
-function warn(...text: string[]): void {
-  log(text.join(" "), "33", "warn");
-}
-
-async function get_decompressor() {
-  log("downloading npm:debrotli wasm");
-  // fetching from esm.sh since it's easier than bundling it ourselves.
-  // the debrotli package is a ~250KB inline brotli decompressor (WASM).
-  // its very fast and has a small footprint.
-  const brotli = await fetch(
-    "https://esm.sh/debrotli/es2022/lib/brotli.bundle.mjs?minify&bundle",
-  ).then((r) => r.text());
-
-  log(`writing brotli decompressor to "${brotliFile}"`);
-  await Deno.writeTextFile(
-    brotliFile,
-    $.dedent`
-    // deno-lint-ignore-file
-    // deno-fmt-ignore-file
-    // @ts-nocheck -- generated
-    ${brotli}
-  `,
-  );
-}
-
 async function build(...args: string[]) {
   await requires("rustup", "rustc", "cargo");
 
@@ -119,134 +78,204 @@ async function build(...args: string[]) {
     err(`the build script should be executed in the "${name}" root`);
   }
 
-  await run(
-    "building using @deno/wasmbuild",
-    "deno",
-    "run",
-    "-Aq",
-    "--env-file=.env", // + import.meta.resolve("../.env").replace(/^file:\/\//, ""),
-    "jsr:@deno/wasmbuild@0.19.2",
-    "--inline",
-    "--out",
-    outDir,
-  );
+  const wasmpack = () =>
+    run(
+      "building using wasm-pack",
+      "deno",
+      "run",
+      "-Aq",
+      "--env-file=.env", // + import.meta.resolve("../.env").replace(/^file:\/\//, ""),
+      "npm:wasm-pack@0.13.1",
+      "build",
+      "--release",
+      "--target",
+      "deno",
+      "--no-pack",
+      "--out-name",
+      name, // results in dawm.{js,d.ts} and dawm_bg.wasm{,.d.ts}
+      "--out-dir",
+      "../" + outDir, // relative to rs_lib dir
+      "rs_lib",
+    );
 
-  const generated = await Array.fromAsync(
-    Deno.readDir(outDir),
-    ({ name }) => `${outDir}/${name}`,
-  );
+  const firstAttempt = await wasmpack().catch(() => null);
+  if (firstAttempt === null) {
+    await patch_wasm_opt(...args);
+    await wasmpack();
+  }
 
-  const [maybePath] = args;
-  const path = maybePath ||
-    generated.find((p) => p.endsWith(".js") && !p.endsWith(".internal.js"));
+  log(`build completed successfully`, 32);
 
-  if (!path || !(await Deno.stat(path))) {
+  await inline_wasm(...args);
+}
+
+async function patch_wasm_opt(...args: string[]) {
+  // find wasm-opt installation(s)
+  let WASM_OPT_BINARY = await $.which("wasm-opt").catch(() => undefined);
+  let seenPatchedFile = false;
+  if (!WASM_OPT_BINARY) {
+    // wasm-opt dir structure is like so:
+    // /home/vscode/.cache/.wasm-pack/wasm-opt-1ceaaea8b7b5f7e0/bin/wasm-opt
+    const baseDir = [path.join(process.env.HOME ?? "", ".cache", ".wasm-pack")];
+    outer: for (const base of baseDir) {
+      inner: for await (const entry of Deno.readDir(base)) {
+        if (entry.isDirectory && entry.name.startsWith("wasm-opt-")) {
+          const candidate = path.join(base, entry.name, "bin", "wasm-opt");
+          const patchedFile = path.join(base, entry.name, "bin", "wasm-opt.sh");
+          const stat = await Deno.stat(patchedFile).catch(() => null);
+          if (stat?.isFile) {
+            seenPatchedFile = true;
+            continue inner; // skip already patched files
+          }
+          const stat2 = await Deno.stat(candidate).catch(() => null);
+          if (stat2?.isFile) {
+            WASM_OPT_BINARY = candidate;
+            break outer; // found it
+          }
+        }
+      }
+    }
+  }
+
+  if (!WASM_OPT_BINARY && !args.includes("--no-opt") && !seenPatchedFile) {
     err(
-      `could not find file "${path}" in "${outDir}".\n\n` +
-        `Generated files available:\n\n - ${generated.join("\n - ")}\n`,
+      "could not find wasm-opt installation; please install binary or pass --no-opt to skip optimization",
     );
   }
 
-  const src = await Deno.readTextFile(path);
-
-  // remove internal exports from the public API
-  // (theres no reason to expose all of the `__wbg_*` stuff to the user)
-  let out = rewrite_exports(src, path);
-
-  // compress the inline wasm module using brotli
-  // (unless the user has opted out by setting BROTLI=0 or --no-brotli)
-  if (Deno.env.get("BROTLI") !== "0" && !args.includes("--no-brotli")) {
-    out = await compress_wasm(out, path);
-    // write brotli decompressor to disk
-    await get_decompressor();
-
-    const srcLen = src.length, outLen = out.length;
-    const reduction = ((srcLen - outLen) / srcLen * 100).toFixed(2);
-    log(
-      `\n✔︎ compressed wasm from \x1b[91m${pretty_bytes(srcLen)}\x1b[39m to ` +
-        `\x1b[1;4;92m${pretty_bytes(outLen)}\x1b[0m, a reduction of ` +
-        `\x1b[1;93m${reduction}%\x1b[0m\n`,
-    );
-    await Deno.writeTextFile(path, out);
-  } else {
-    warn(
-      "⚠︎ skipping wasm compression.\n",
-      "note: the inline wasm may be large. to enable compression, set environment variable BROTLI=<1-11>" +
-        (args.includes("--no-brotli")
-          ? " and remove any --no-brotli flags as well."
-          : "."),
-    );
-
-    await Deno.writeTextFile(path, out);
-    log(
-      `\n✔︎ wrote wasm to \x1b[1;4;92m${path}\x1b[0m \x1b[2m(${
-        pretty_bytes(out.length)
-      })\x1b[0m\n`,
-    );
+  // patch wasm-opt binary(s) for our environment
+  if (WASM_OPT_BINARY) {
+    process.env.WASM_OPT_BINARY = WASM_OPT_BINARY;
+    log(`using wasm-opt binary at ${WASM_OPT_BINARY}`);
+    const scriptsDir = import.meta.dirname ??
+      new URL(".", import.meta.url).pathname;
+    log(`patching wasm-opt binary for DAWM build environment`);
+    const code = await $`./patch_wasm_opt.sh`.quiet().env({ WASM_OPT_BINARY })
+      .cwd(scriptsDir).code();
+    if (code !== 0) {
+      err(`failed to patch wasm-opt binary. run again with --no-opt`);
+    }
   }
 }
 
-function rewrite_exports(src: string, path: string | URL): string {
-  // remove internal exports from the public API
-  // (theres no reason to expose all of the `__wbg_*` stuff to the user)
-  return src.replace(
-    /^\s*export\s+\*\s+from\s+(["'])(\S+?\.internal\.m?js)\1;?\s*$/gm,
-    (_, q, p) => {
-      const internal = Deno.readTextFileSync(
-        path.toString().replace(/(?<=\/)[^/]+$/, p).replace(/\/\.\//g, "/"),
-      );
-      const re =
-        /export\s+(?:const|function|class)\s+((?!_)[^\s(={]+?)\s*(?:[(={])/g;
-      const exports = new Set<string>();
-      for (const m of internal.matchAll(re)) exports.add(m[1]);
-      return $.dedent`
-        export {
-          ${[...exports].join(",\n  ")},
-        } from ${q}${p}${q};
-      `;
-    },
-  );
-}
+async function inline_wasm(...args: string[]) {
+  // inline wasm in JS file as base64, replacing wasm loading code
+  const glue = $.path(outDir).join(name + ".js");
+  let glue_src = await glue.readText();
 
-/**
- * Decodes, compresses, and re-encodes the inline wasm module in the js file.
- * This reduces the size of the module by up to 80% (e.g. ~1.2M to ~250K).
- */
-function compress_wasm(src: string, path: string | URL): string {
-  return src.replace(
-    /const bytes = base64decode\("(.+?)"\);\s*?\n/s,
-    (_, b) => {
-      // `import { decompress } from "npm:brocha@^0.1.1";\n\n` +
-      // we use `import()` to conditionally load the native module,
-      // if its available, otherwise we fallback to a pure JS implementation
-      // of the brotli decompression algorithm. this is to ensure that we
-      // take advantage of the native module (and its performance benefits)
-      // if available, without losing compatibility with other runtimes.
-      // return $.dedent`
-      //   /** @type {(b: Uint8Array) => Uint8Array} */
-      //   const decompress = await import("node:zlib" + "").then(
-      //     // use node zlib if available, e.g. in node, deno, and bun
-      //     (z) => (z.default ?? z)["brotliDecompressSync"].bind(z),
-      //     // otherwise use a bundled debrotli, a fast wasm brotli decompressor
-      //     () => import("./${brotliJs}").then((m) => m.decompress || m.default)
-      //   );
-      return $.dedent`
-        import { decompress } from "./${brotliJs}";
+  // get rid of eslint/tslint disable comments in the glue code file
+  glue_src = glue_src.replace(/\/\*\s*[et]slint[-\s\w:]*\*\/\n/g, "");
 
-        const bytes = decompress(
-          base64decode("${"\\\n"}${
-        btoa(
-          compress(
-            Uint8Array.from(
-              atob(b.replaceAll(/\\|\s+/g, "")),
-              (c) => c.charCodeAt(0),
-            ),
-          ).reduce((a, b) => a + String.fromCharCode(b), ""),
-        ).replace(/.{77}/g, "$&\\\n")
-      }${"\\\n"}")
-        );
-      `;
-    },
+  // if there isn't a `let wasm;` at the beginning of the file, add it.
+  if (glue_src.indexOf("let wasm;") === -1) {
+    glue_src = `let wasm;\n` + glue_src;
+  }
+  // if there are references to `TextEncoder`, `TextDecoder`, add a side-effect
+  // import from `@nick/utf8/shim` to ensure they're always available.
+  if (
+    glue_src.includes("TextEncoder") ||
+    glue_src.includes("TextDecoder")
+  ) {
+    glue_src = `import "@nick/utf8/shim";\n` + glue_src;
+  }
+  // we WILL be using atob() to decode base64 strings, so we add a side-effect
+  // import from `@nick/atob/shim` to ensure it's always available.
+  glue_src = `import "@nick/atob/shim";\n` + glue_src;
+
+  const wasm = $.path(outDir).join(name + "_bg.wasm");
+  const wasm_src = await wasm.readBytes();
+  let final_wasm = wasm_src;
+  let byte_str = "bytes";
+  if (process.env.BROTLI !== "0" && !args.includes("--no-brotli")) {
+    byte_str = `decompress(${byte_str})`;
+    // add import from debrotli module for decompression
+    glue_src = `import { decompress } from "debrotli";\n` + glue_src;
+    // compress wasm using brotli
+    final_wasm = brotliCompressSync(wasm_src, {
+      params: {
+        [constants.BROTLI_PARAM_QUALITY]: 11,
+        [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_GENERIC,
+        [constants.BROTLI_PARAM_LGWIN]: 22,
+        [constants.BROTLI_PARAM_LGBLOCK]: 0,
+        [constants.BROTLI_PARAM_SIZE_HINT]: wasm_src.length,
+      },
+    });
+  }
+  const b64 = Buffer.from(final_wasm).toString("base64");
+  let loader = `base64decode("\\\n${b64.replace(/.{77}/g, "$&\\\n")}\\\n")`;
+
+  // marks the beginning of the area we want to replace
+  const startMark = `const wasmUrl = new URL(`;
+  const startIdx = glue_src.indexOf(startMark);
+  if (startIdx === -1) err(`could not find wasm loading code in ${glue}`);
+
+  const endMark = `export { wasm as __wasm };`;
+  let endIdx = glue_src.indexOf(endMark, startIdx);
+  // default to the end of the file if for some weird reason we can't find
+  // the known end marker. this should never happen, but hey. why not.
+  if (endIdx === -1) endIdx = glue_src.length - 1;
+
+  const before = glue_src.slice(0, startIdx);
+  const after = glue_src.slice(endIdx);
+  loader = $.dedent`
+    /// <reference types="./index.d.ts" />
+    // deno-fmt-ignore-file
+    // deno-lint-ignore-file
+    // deno-coverage-ignore-file
+    // @ts-nocheck -- generated file
+    // @ts-self-types="./index.d.ts"
+
+    ${before}
+    const bytes = ${loader};
+    const wasmModule = new WebAssembly.Module(bytes);
+    const instance = new WebAssembly.Instance(wasmModule, imports);
+    wasm = instance.exports;
+
+    function base64decode(b64) {
+      let bytes;
+      if (typeof Uint8Array.fromBase64 === "function") {
+        // for modern runtimes with native Uint8Array.fromBase64 support
+        bytes = Uint8Array.fromBase64(b64);
+      } else {
+        // legacy atob-based decoder for older runtimes
+        const binString = atob(b64);
+        const size = binString.length;
+        bytes = new Uint8Array(size);
+        for (let i = 0; i < size; i++) {
+          bytes[i] = binString.charCodeAt(i);
+        }
+      }
+      return ${byte_str};
+    }
+    ${after}
+  `;
+
+  // clean some things up
+  await wasm.withBasename(".gitignore").ensureRemove();
+  const wasm_dts = wasm.withExtname(".wasm.d.ts");
+  await wasm_dts.ensureRemove();
+  const glue_dts = glue.withExtname(".d.ts");
+  const dest = glue.withBasename("index.js");
+  const dest_dts = glue_dts.withBasename("index.d.ts");
+
+  // rename dawm.js -> index.js
+  await glue.rename(dest);
+  // rename dawm.d.ts -> index.d.ts
+  await glue_dts.rename(dest_dts);
+  // write modified glue code with inlined wasm
+  await dest.writeText(loader);
+  // format things
+  await $`deno fmt -q --no-config ${dest.dirname()}`.quiet().code();
+
+  const final_size = final_wasm.byteLength;
+  log(`-> final wasm size: ${pretty_bytes(final_size)}`, 36);
+  log(`-> wrote inline wasm + glue to ${dest}`);
+  log(`-> wrote type declarations to ${dest_dts}`);
+  log(
+    `-> final size of inline wasm + glue: ${
+      pretty_bytes(dest.statSync()?.size ?? 0)
+    }`,
+    36,
   );
 }
 
