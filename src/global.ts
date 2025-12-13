@@ -15,7 +15,7 @@
  * ```
  * @module global
  */
-const $dawm = await import("./index.ts");
+import * as $dawm from "@nick/dawm";
 
 declare global {
   // deno-lint-ignore no-var
