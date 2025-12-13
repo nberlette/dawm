@@ -1,5 +1,11 @@
-import { isObject } from "./_internal.ts";
-import { serializeDOMStringMap, serializeNamedNodeMap } from "./collections.ts";
+import {
+  isObject,
+  ObjectHasOwn,
+  StringPrototypeReplace,
+  StringPrototypeToLowerCase,
+  StringPrototypeTrim,
+} from "./_internal.ts";
+import type { DOMStringMap, NamedNodeMap } from "./collections.ts";
 import type {
   Attr,
   CDATASection,
@@ -69,14 +75,19 @@ export function serializeHTML<T extends AnyNode>(
           let out = "";
           out += `<${node.localName}`;
           const attributes = node.attributes;
-          out += serializeNamedNodeMap(attributes) || "";
+          if (attributes) {
+            out += serializeNamedNodeMap(attributes) || "";
+          }
           if (node.dataset) {
             out += serializeDOMStringMap(node.dataset) || "";
           }
           if (node.isSelfClosing) return `${out} />`;
           out += ">";
           if (node.childNodes.length > 0) {
-            out += serializeHTML(node.childNodes);
+            for (let i = 0; i < node.childNodes.length; i++) {
+              const child = node.childNodes[i];
+              if (child) out += serializeHTML(child);
+            }
           } else if (node.textContent) {
             out += node.textContent;
           }
@@ -96,9 +107,12 @@ export function serializeHTML<T extends AnyNode>(
           return `<?${node.target} ${node.data}?>`;
         case NodeType.Comment:
           return `<!--${node.data}-->`;
-        case NodeType.Document:
-          if (node.documentElement) return serializeHTML(node.documentElement);
-          return "";
+        case NodeType.Document: {
+          let out = "";
+          if (node.doctype) out += serializeHTML(node.doctype);
+          if (node.documentElement) out += serializeHTML(node.documentElement);
+          return out;
+        }
         case NodeType.DocumentType /* Node.DOCUMENT_TYPE_NODE */: {
           let out = "";
           out += `<!DOCTYPE ${node.name}`;
@@ -119,16 +133,104 @@ export function serializeHTML<T extends AnyNode>(
         default:
           return ""; // gracefully ignore unknown node types
       }
-    } else if ("length" in node || Symbol.iterator in node) {
+    } else if ("length" in node) {
       let out = "";
-      const nodes = Array.from(node);
-      for (let i = 0; i < nodes.length; i++) {
-        out += serializeHTML(nodes[i]);
+      for (let i = 0; i < node.length; i++) {
+        if (node[i]) out += serializeHTML(node[i]);
       }
       return out;
+    } else if (Symbol.iterator in node) {
+      let out = "";
+      for (const child of node) out += serializeHTML(child);
+      return out;
     }
+  } else if (node == null) {
+    return "";
   }
   throw new TypeError(
     `Cannot serialize unknown input type. Expected a Node or an array-like/iterable collection of Nodes, but received a ${typeof node}: ${node}`,
   );
+}
+
+/**
+ * Serializes a {@linkcode DOMStringMap} into a string of HTML data attributes.
+ *
+ * @param dataset - The DOMStringMap to serialize.
+ * @returns A string representation of the DOMStringMap as HTML data attributes.
+ * @category Collections
+ * @tags DOMStringMap, Serialization
+ */
+export function serializeDOMStringMap(dataset: DOMStringMap): string {
+  let out = "";
+  for (const k in dataset) {
+    if (!ObjectHasOwn(dataset, k)) continue;
+    const v = dataset[k];
+    if (v == null) continue;
+    let p = StringPrototypeReplace(
+      k,
+      /([a-z]|^)([A-Z](?![A-Z]))/g,
+      (_, $1, $2) => `${$1}-${$2}`,
+    );
+    p = StringPrototypeToLowerCase(StringPrototypeTrim(p));
+    out += ` data-${p}="${v}"`;
+  }
+  return out;
+}
+
+/**
+ * Serializes a {@linkcode NamedNodeMap} into a string of HTML attributes.
+ *
+ * @param attrs - The NamedNodeMap to serialize.
+ * @returns A string representation of the NamedNodeMap as HTML attributes.
+ * @category Collections
+ * @tags NamedNodeMap, Serialization
+ */
+export function serializeNamedNodeMap(attrs: NamedNodeMap): string {
+  let out = "";
+  for (let i = 0; i < attrs.length; i++) {
+    const attr = attrs[i];
+    if (!attr) continue;
+
+    let { name: k, value: v } = attr;
+
+    if (
+      k === "children" || (
+        !v &&
+        (k === "style" || k === "class" || k === "className" || k === "id")
+      )
+    ) {
+      continue;
+    }
+    if ((!v && v !== "") || v === "false") continue;
+    // normalize attribute names from camelCase to kebab-case, where needed.
+    if (k.startsWith("aria")) {
+      k = k.replace(/^aria([A-Z]\w+)$/, "aria-$1").toLowerCase();
+    } else if (k === "className" || k === "classList" || k === "class") {
+      k = "class"; // normalize className/class/classList attrs
+    } else if (k === "htmlFor") {
+      k = "for"; // normalize htmlFor/for attrs
+    } else if (k === "httpEquiv") {
+      k = "http-equiv"; // normalize httpEquiv/http-equiv attrs
+    } else if (k === "tabIndex") {
+      k = "tabindex"; // normalize tabIndex/tabindex attrs
+    } else if (k === "readOnly") {
+      k = "readonly"; // normalize readOnly/readonly attrs
+    } else if (k === "maxLength") {
+      k = "maxlength"; // normalize maxLength/maxlength attrs
+    } else {
+      const kebab = StringPrototypeToLowerCase(
+        StringPrototypeReplace(
+          k,
+          /([a-z]|^)([A-Z](?![A-Z]))/g,
+          (_, $1, $2) => `${$1}-${$2}`,
+        ),
+      );
+      if (!kebab.startsWith("aria-") && !kebab.startsWith("data-")) {
+        // aria attributes should be kebab-case
+        k = kebab;
+      }
+    }
+    out += ` ${k}="${v}"`;
+  }
+  return out;
 }
