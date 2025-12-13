@@ -1,0 +1,11 @@
+/target
+node_modules
+.DS_Store
+.Spotlight-V100
+*.env*
+.coverage
+.cov
+coverage*
+dist
+build
+lib

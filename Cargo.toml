@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members  = ["rs_lib"]
+
+[profile.release]
+codegen-units = 1
+lto           = true
+opt-level     = "s"
+strip         = "symbols"

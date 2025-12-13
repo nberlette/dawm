@@ -1,0 +1,92 @@
+{
+  "name": "@nick/dawm",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts",
+    "./guards": "./src/guards.ts",
+    "./parse": "./src/parse.ts",
+    "./serialize": "./src/serialize.ts",
+    "./types": "./src/types.ts",
+    "./wasm": "./src/wasm/index.js",
+    "./wasm.js": "./src/wasm/index.js",
+    "./wasm.d.ts": "./src/wasm/index.d.ts"
+  },
+  "imports": {
+    "@nick/atob": "jsr:@nick/atob@0.3.0",
+    "parsel-js": "npm:parsel-js@1.2.2",
+    "debrotli": "npm:debrotli@0.1.0"
+  },
+  "tasks": {
+    "wasmbuild": {
+      "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build.ts",
+      "description": "Build the WebAssembly module using @deno/wasmbuild"
+    },
+    "wasmpack": {
+      "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build_wasmpack.ts",
+      "description": "Build the WebAssembly module using wasm-pack"
+    },
+    "build": {
+      "command": "./scripts/esbuild.sh",
+      "description": "Build + bundle the @nick/dawm package",
+      "dependencies": [
+        "wasmbuild"
+      ]
+    },
+    "test": {
+      "command": "deno test -Aq --no-check=remote --parallel --doc --coverage=.coverage --coverage-raw-data-only",
+      "description": "Run the test suite"
+    },
+    "bench": {
+      "command": "deno bench -Aq --no-check=remote",
+      "description": "Run the benchmark suite"
+    },
+    "fmt:check": {
+      "command": "deno fmt --check",
+      "description": "Check code formatting with deno fmt"
+    },
+    "fmt": {
+      "command": "deno fmt",
+      "description": "Format the codebase with deno fmt"
+    },
+    "lint": {
+      "command": "deno lint",
+      "description": "Lint the codebase for problems"
+    },
+    "prepublish": {
+      "command": "deno publish --dry-run --allow-dirty",
+      "dependencies": [
+        "build",
+        "fmt:check",
+        "lint",
+        "test"
+      ]
+    },
+    "publish": {
+      "command": "deno publish --allow-dirty",
+      "dependencies": ["prepublish"]
+    }
+  },
+  "publish": {
+    "include": [
+      "src/.*",
+      "./**/*.bench.*",
+      "scripts",
+      "crates"
+    ]
+  },
+  "hooks": {
+    "pre-commit": [
+      "fmt:check",
+      "lint",
+      "test"
+    ],
+    "pre-push": [
+      "build",
+      "test",
+      "bench"
+    ],
+    "prepare-commit-msg": "exec < /dev/tty && deno -Aq npm:git-cz --hook || true"
+  }
+}
