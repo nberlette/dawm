@@ -1,11 +1,12 @@
 // deno-lint-ignore-file no-fallthrough
 import type { Node } from "./index.ts";
-import type { AST, AttributeToken } from "parsel-js";
 import {
+  type AST,
+  type AttributeToken,
   parse,
   specificity as getSpecificity,
   specificityToNumber,
-} from "parsel-js";
+} from "./vendor/parsel-js/index.ts";
 
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;
