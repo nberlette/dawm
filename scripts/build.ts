@@ -3,7 +3,7 @@
 /*!
  * Copyright 2025 Nicholas Berlette. All rights reserved. MIT license.
  */
-// deno-lint-ignore-file no-import-prefix
+// deno-lint-ignore-file no-import-prefix no-console
 import path from "node:path";
 import { $ } from "jsr:@david/dax@0.44.1";
 import process from "node:process";
@@ -14,41 +14,10 @@ const name = "dawm";
 const outDir = "src/wasm";
 
 async function requires(...executables: string[]) {
-  const where = Deno.build.os === "windows" ? "where" : "which";
-
   for (const executable of executables) {
-    const p = new Deno.Command(where, {
-      args: [executable],
-      stderr: "null",
-      stdin: "null",
-      stdout: "null",
-    }).spawn();
-
-    if (!(await p.status).success) {
-      err(`Could not find required build tool ${executable}`);
+    if (!await $.commandExists(executable)) {
+      err(`required executable "${executable}" not found in PATH`);
     }
-  }
-}
-
-async function run(msg: string, cmd: string, ...args: string[]) {
-  log(msg);
-
-  const p = new Deno.Command(cmd, {
-    args,
-    stderr: "inherit",
-    stdin: "null",
-    stdout: "inherit",
-    env: {
-      ...Deno.env.toObject(),
-      WASM_OPT_LEVEL: Deno.env.get("WASM_OPT_LEVEL") ?? "s",
-      WASM_OPT_BULK_MEMORY: Deno.env.get("WASM_OPT_BULK_MEMORY") ?? "1",
-      WASM_OPT_EXTRA_ARGS: Deno.env.get("WASM_OPT_EXTRA_ARGS") ??
-        "--all-features",
-    },
-  }).spawn();
-
-  if (!(await p.status).success) {
-    err(`${msg} failed`);
   }
 }
 
@@ -68,35 +37,23 @@ function log(
 
 function err(text: string): never {
   log(text, "1;31", "error");
-  return Deno.exit(1);
+  return process.exit(1);
 }
 
 async function build(...args: string[]) {
   await requires("rustup", "rustc", "cargo");
 
-  if (!(await Deno.stat("Cargo.toml")).isFile) {
+  if (!(await $.path("Cargo.toml").stat())?.isFile) {
     err(`the build script should be executed in the "${name}" root`);
   }
 
-  const wasmpack = () =>
-    run(
-      "building using wasm-pack",
-      "deno",
-      "run",
-      "-Aq",
-      "--env-file=.env", // + import.meta.resolve("../.env").replace(/^file:\/\//, ""),
-      "npm:wasm-pack@0.13.1",
-      "build",
-      "--release",
-      "--target",
-      "deno",
-      "--no-pack",
-      "--out-name",
-      name, // results in dawm.{js,d.ts} and dawm_bg.wasm{,.d.ts}
-      "--out-dir",
-      "../" + outDir, // relative to rs_lib dir
-      "rs_lib",
-    );
+  if (!await $.commandExists("wasm-bindgen")) {
+    await $`cargo install -f wasm-bindgen-cli@$}`;
+  }
+
+  const wasmpack = async (env: Record<string, string> = {}) =>
+    await $`deno run -Aq npm:wasm-pack@0.13.1 build --release --target deno --no-pack --out-name ${name} --out-dir ../${outDir} rs_lib`
+      .printCommand(true).env(env);
 
   const firstAttempt = await wasmpack().catch(() => null);
   if (firstAttempt === null) {
@@ -116,18 +73,20 @@ async function patch_wasm_opt(...args: string[]) {
   if (!WASM_OPT_BINARY) {
     // wasm-opt dir structure is like so:
     // /home/vscode/.cache/.wasm-pack/wasm-opt-1ceaaea8b7b5f7e0/bin/wasm-opt
-    const baseDir = [path.join(process.env.HOME ?? "", ".cache", ".wasm-pack")];
+    const baseDir = [
+      path.join(process.env.HOME ?? "", ".cache", ".wasm-pack"),
+    ];
     outer: for (const base of baseDir) {
-      inner: for await (const entry of Deno.readDir(base)) {
+      inner: for await (const entry of $.path(base).readDir()) {
         if (entry.isDirectory && entry.name.startsWith("wasm-opt-")) {
           const candidate = path.join(base, entry.name, "bin", "wasm-opt");
           const patchedFile = path.join(base, entry.name, "bin", "wasm-opt.sh");
-          const stat = await Deno.stat(patchedFile).catch(() => null);
+          const stat = await $.path(patchedFile).stat() ?? null;
           if (stat?.isFile) {
             seenPatchedFile = true;
             continue inner; // skip already patched files
           }
-          const stat2 = await Deno.stat(candidate).catch(() => null);
+          const stat2 = await $.path(candidate).stat() ?? null;
           if (stat2?.isFile) {
             WASM_OPT_BINARY = candidate;
             break outer; // found it
@@ -161,10 +120,13 @@ async function patch_wasm_opt(...args: string[]) {
 async function inline_wasm(...args: string[]) {
   // inline wasm in JS file as base64, replacing wasm loading code
   const glue = $.path(outDir).join(name + ".js");
+  const glue_dts = glue.withExtname(".d.ts");
+
   let glue_src = await glue.readText();
+  let glue_dts_src = await glue_dts.readText();
 
   // get rid of eslint/tslint disable comments in the glue code file
-  glue_src = glue_src.replace(/\/\*\s*[et]slint[-\s\w:]*\*\/\n/g, "");
+  glue_src = glue_src.replace(/\/\*\s*[et]slint[-\s\w:]+?\s*\*\/\n/g, "");
 
   // if there isn't a `let wasm;` at the beginning of the file, add it.
   if (glue_src.indexOf("let wasm;") === -1) {
@@ -181,6 +143,12 @@ async function inline_wasm(...args: string[]) {
   // we WILL be using atob() to decode base64 strings, so we add a side-effect
   // import from `@nick/atob/shim` to ensure it's always available.
   glue_src = `import "@nick/atob/shim";\n` + glue_src;
+  glue_dts_src = $.dedent`
+    // deno-lint-ignore-file
+    // deno-coverage-ignore-file
+    // @ts-nocheck -- generated file
+    ${glue_dts_src.replace(/\/\*\s*[et]slint[-\s\w:]+?\s*\*\/\n/g, "")}
+  `;
 
   const wasm = $.path(outDir).join(name + "_bg.wasm");
   const wasm_src = await wasm.readBytes();
@@ -254,7 +222,7 @@ async function inline_wasm(...args: string[]) {
   await wasm.withBasename(".gitignore").ensureRemove();
   const wasm_dts = wasm.withExtname(".wasm.d.ts");
   await wasm_dts.ensureRemove();
-  const glue_dts = glue.withExtname(".d.ts");
+
   const dest = glue.withBasename("index.js");
   const dest_dts = glue_dts.withBasename("index.d.ts");
 
@@ -301,4 +269,4 @@ function pretty_bytes(
   return `${size} ${unitOverride ?? units[i]}`;
 }
 
-if (import.meta.main) await build(...Deno.args);
+if (import.meta.main) await build(...process.argv.slice(2));
