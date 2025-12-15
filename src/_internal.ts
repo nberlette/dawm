@@ -1,3 +1,4 @@
+// deno-lint-ignore-file ban-types
 export function isObject(it: unknown): it is object {
   return typeof it === "object" && it !== null;
 }
@@ -58,11 +59,12 @@ export const ObjectIsPrototypeOf = uncurryThis(Object.isPrototypeOf);
 export const ObjectPropertyIsEnumerable = uncurryThis(
   Object.propertyIsEnumerable,
 );
-export const ObjectHasOwn = Object.hasOwn || ObjectHasOwnProperty;
+export { ObjectHasOwnProperty as ObjectHasOwn };
 
 export const StringPrototype = String.prototype;
 export const StringPrototypeSlice = uncurryThis(StringPrototype.slice);
 export const StringPrototypeTrim = uncurryThis(StringPrototype.trim);
+export const StringPrototypeSplit = uncurryThis(StringPrototype.split);
 export const StringPrototypeToLowerCase = uncurryThis(
   StringPrototype.toLowerCase,
 );
@@ -87,36 +89,50 @@ export const ArrayIsArray = Array.isArray ||
       ObjectPrototypeToString(it) === "[object Array]";
   };
 
-export const indexOf: <T>(
+export function indexOf<T>(
   target: ArrayLike<T>,
   value: T,
   fromIndex?: number,
-) => number = uncurryThis(Array.prototype.indexOf);
+): number {
+  const length = target.length >>> 0;
+  let i = fromIndex ? Number(fromIndex) : 0;
+  if (i < 0) i = Math.max(length + i, 0);
+  for (; i < length; i++) {
+    if (target[i] === value) return i;
+  }
+  return -1;
+}
+
 export const pop: <T>(target: ArrayLike<T>) => T | undefined = uncurryThis(
   Array.prototype.pop,
 );
+
 export const push: <T>(target: ArrayLike<T>, ...items: T[]) => number =
   uncurryThis(Array.prototype.push);
+
 export const shift: <T>(target: ArrayLike<T>) => T | undefined = uncurryThis(
   Array.prototype.shift,
 );
+
 export const slice: <T>(
   target: ArrayLike<T>,
   start?: number,
   end?: number,
 ) => T[] = uncurryThis(Array.prototype.slice);
+
 export const splice: <T>(
   target: ArrayLike<T>,
   start: number,
   deleteCount?: number,
   ...items: T[]
 ) => T[] = uncurryThis(Array.prototype.splice);
+
 export const unshift: <T>(target: ArrayLike<T>, ...items: T[]) => number =
   uncurryThis(Array.prototype.unshift);
 
 export function isArray<T>(
   it: unknown,
-  type?: (item: any, index: number, array: any[]) => item is T,
+  type?: (item: unknown, index: number, array: unknown[]) => item is T,
 ): it is T[] {
   if (!ArrayIsArray(it)) return false;
   if (type) {

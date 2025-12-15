@@ -211,7 +211,7 @@ export abstract class Node {
   set innerHTML(value: string) {
     let tagName = "div";
     if (this.nodeType === NodeType.Element) {
-      tagName = (this as {} as Element).tagName;
+      tagName = (this as unknown as Element).tagName;
     }
     const fragment = parseFragment(value, tagName);
     while (this.firstChild) {
@@ -834,6 +834,7 @@ export abstract class CharacterData extends Node {
   }
 
   protected cloneShallow(): CharacterData {
+    // deno-lint-ignore no-explicit-any
     return new (CharacterData as any)(this.nodeName, this.data);
   }
 
@@ -1007,96 +1008,112 @@ export class DocumentFragment extends Node {
   }
 
   getElementsByName<T extends Element>(name: string): NodeListOf<T> {
-    const elements: T[] = [];
+    const get = () => {
+      const elements: T[] = [];
 
-    const traverse = (node: Node | null): void => {
-      while (node) {
-        if (node.nodeType === NodeType.Element) {
-          const element = node as T;
-          if (element.getAttribute("name") === name) {
-            elements.push(element);
+      const traverse = (node: Node | null): void => {
+        while (node) {
+          if (node.nodeType === NodeType.Element) {
+            const element = node as T;
+            if (element.getAttribute("name") === name) {
+              elements.push(element);
+            }
           }
+          if (node.nextSibling) node = node.nextSibling;
+          else node = node.firstChild;
         }
-        if (node.nextSibling) node = node.nextSibling;
-        else node = node.firstChild;
-      }
+      };
+
+      traverse(this.firstChild);
+      return elements;
     };
 
-    traverse(this.firstChild);
-    return new NodeListOf(this, elements);
+    return new NodeListOf(this, get(), get);
   }
 
   getElementsByTagName<T extends Element>(tagName: string): NodeListOf<T> {
-    const elements: T[] = [];
-    const lowerTagName = tagName.toLowerCase();
+    const get = () => {
+      const elements: T[] = [];
+      const lowerTagName = tagName.toLowerCase();
 
-    const traverse = (node: Node | null): void => {
-      while (node) {
-        if (node.nodeType === NodeType.Element) {
-          const element = node as T;
-          if (
-            tagName === "*" ||
-            element.tagName.toLowerCase() === lowerTagName
-          ) {
-            elements.push(element);
+      const traverse = (node: Node | null): void => {
+        while (node) {
+          if (node.nodeType === NodeType.Element) {
+            const element = node as T;
+            if (
+              tagName === "*" ||
+              element.tagName.toLowerCase() === lowerTagName
+            ) {
+              elements.push(element);
+            }
           }
+          if (node.nextSibling) node = node.nextSibling;
+          else node = node.firstChild;
         }
-        if (node.nextSibling) node = node.nextSibling;
-        else node = node.firstChild;
-      }
+      };
+
+      traverse(this.firstChild);
+      return elements;
     };
 
-    traverse(this.firstChild);
-    return new NodeListOf(this, elements);
+    return new NodeListOf(this, get(), get);
   }
 
   getElementsByTagNameNS<T extends Element>(
     namespace: string | null,
     localName: string,
   ): NodeListOf<T> {
-    const elements: T[] = [];
-    const lowerLocalName = localName.toLowerCase();
+    const get = () => {
+      const elements: T[] = [];
+      const lowerLocalName = localName.toLowerCase();
 
-    const traverse = (node: Node | null): void => {
-      while (node) {
-        if (node.nodeType === NodeType.Element) {
-          const element = node as T;
-          const elementNamespace = element.namespaceURI ?? null;
-          if (
-            (localName === "*" ||
-              element.localName.toLowerCase() === lowerLocalName) &&
-            (namespace === "*" || elementNamespace === namespace)
-          ) {
-            elements.push(element);
+      const traverse = (node: Node | null): void => {
+        while (node) {
+          if (node.nodeType === NodeType.Element) {
+            const element = node as T;
+            const elementNamespace = element.namespaceURI ?? null;
+            if (
+              (localName === "*" ||
+                element.localName.toLowerCase() === lowerLocalName) &&
+              (namespace === "*" || elementNamespace === namespace)
+            ) {
+              elements.push(element);
+            }
           }
+          if (node.nextSibling) node = node.nextSibling;
+          else node = node.firstChild;
         }
-        if (node.nextSibling) node = node.nextSibling;
-        else node = node.firstChild;
-      }
+      };
+
+      traverse(this.firstChild);
+      return elements;
     };
 
-    traverse(this.firstChild);
-    return new NodeListOf(this, elements);
+    return new NodeListOf(this, get(), get);
   }
 
   getElementsByClassName<T extends Element>(className: string): NodeListOf<T> {
-    const elements: T[] = [];
+    const get = () => {
+      const elements: T[] = [];
 
-    const traverse = (node: Node | null): void => {
-      while (node) {
-        if (node.nodeType === NodeType.Element) {
-          const element = node as T;
-          if (element.classList.contains(className)) {
-            elements.push(element);
+      const traverse = (node: Node | null): void => {
+        while (node) {
+          if (node.nodeType === NodeType.Element) {
+            const element = node as T;
+            if (element.classList.contains(className)) {
+              elements.push(element);
+            }
           }
+          if (node.nextSibling) node = node.nextSibling;
+          else node = node.firstChild;
         }
-        if (node.nextSibling) node = node.nextSibling;
-        else node = node.firstChild;
-      }
+      };
+
+      traverse(this.firstChild);
+      return elements;
     };
 
-    traverse(this.firstChild);
-    return new NodeListOf(this, elements);
+    return new NodeListOf(this, get(), get);
   }
 
   protected cloneShallow(): DocumentFragment {
@@ -1229,7 +1246,7 @@ export class Document extends Node {
   constructor(
     contentType: string,
     quirksMode: QuirksModeType,
-    namespaceURI: string = XHTML_NAMESPACE,
+    namespaceURI: string | null = XHTML_NAMESPACE,
     baseURI: string | null = null,
   ) {
     super("#document", null, null, null, null);

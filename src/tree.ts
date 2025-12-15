@@ -1,11 +1,12 @@
 import {
   INTERNED_STRINGS,
   isArray,
-  isString,
   ObjectDefineProperty,
 } from "./_internal.ts";
+import { createNamedNodeMap } from "./collections.ts";
 import {
   Attr,
+  CDATASection,
   Document,
   DocumentFragment,
   DocumentType,
@@ -31,14 +32,16 @@ import {
   type WireNode,
 } from "./wire.ts";
 
-// #endregion Concrete Types
 interface BuildTreeContext {
   lookup: Map<number, ResolvedWireNode>;
   strings: readonly string[];
   contentType: string;
   quirksMode: QuirksModeType;
   document: Document | null;
+  namespaceURI?: string | null;
+  baseURI?: string | null;
 }
+
 function instantiateDomNode(
   node: ResolvedWireNode,
   context: BuildTreeContext,
@@ -48,12 +51,34 @@ function instantiateDomNode(
       "Cannot instantiate non-document node without a document context.",
     );
   }
+  if (!context.namespaceURI) {
+    if (context.document?.namespaceURI) {
+      context.namespaceURI = context.document.namespaceURI;
+    } else {
+      const contentType = context.document?.contentType ?? context.contentType;
+      switch (contentType) {
+        case "application/xhtml+xml":
+        case "image/svg+xml":
+        case "application/mathml+xml":
+          context.namespaceURI = "http://www.w3.org/1999/xhtml";
+          break;
+        case "application/xml":
+        case "text/xml":
+          context.namespaceURI = "http://www.w3.org/XML/1998/namespace";
+          break;
+        default:
+          context.namespaceURI = null;
+      }
+    }
+  }
   let instance: Node;
   switch (node.nodeType) {
     case NodeType.Document: {
       const doc = new Document(
         context.contentType,
         context.quirksMode,
+        context.namespaceURI,
+        context.baseURI,
       );
       context.document = doc;
       defineInternedStrings(doc, context.strings);
@@ -61,10 +86,19 @@ function instantiateDomNode(
       break;
     }
     case NodeType.Element: {
-      const attrs = (node.attributes ?? []).map((attr) =>
-        new Attr(attr.name, attr.value ?? "", attr.ns ?? null)
+      instance = new Element(node.nodeName ?? "");
+      instance.namespaceURI = context.namespaceURI;
+      instance.attributes = createNamedNodeMap(
+        instance as Element,
+        (node.attributes ?? []).map((attr) =>
+          new Attr(
+            attr.name,
+            attr.value ?? "",
+            attr.ns ?? context.namespaceURI,
+            instance as Element,
+          )
+        ),
       );
-      instance = new Element(node.nodeName ?? "", attrs);
       break;
     }
     case NodeType.Text:
@@ -80,21 +114,46 @@ function instantiateDomNode(
       const systemAttr = node.attributes?.find((attr) =>
         attr.name === "systemId"
       );
-      const fn = context.document?.createDocumentType ??
-        ((...args) => new DocumentType(...args));
-      instance = fn(
+      let docType = context.document?.createDocumentType(
         node.nodeName ?? "",
         publicAttr?.value ?? "",
         systemAttr?.value ?? "",
       );
+      docType ??= new DocumentType(
+        node.nodeName ?? "",
+        publicAttr?.value ?? "",
+        systemAttr?.value ?? "",
+      );
+      docType.ownerDocument = context.document!;
+      docType.namespaceURI = context.namespaceURI;
+      instance = docType;
       break;
     }
     case NodeType.Attribute:
-      instance = new Attr(
-        node.nodeName ?? "",
-        node.nodeValue ?? "",
-        null,
-      );
+      {
+        let attr = context.document?.createAttributeNS(
+          context.namespaceURI,
+          node.nodeName ?? "",
+          node.nodeValue ?? "",
+        );
+        attr ??= new Attr(
+          node.nodeName ?? "",
+          node.nodeValue ?? "",
+          context.namespaceURI,
+        );
+        attr.ownerDocument = context.document!;
+        attr.namespaceURI = context.namespaceURI;
+        instance = attr;
+      }
+      break;
+    case NodeType.CData:
+      {
+        let cdata = context.document?.createCDATASection(node.nodeValue ?? "");
+        cdata ??= new CDATASection(node.nodeValue ?? "");
+        cdata.ownerDocument = context.document!;
+        cdata.namespaceURI = context.namespaceURI;
+        instance = cdata;
+      }
       break;
     default:
       instance = new GenericNode(

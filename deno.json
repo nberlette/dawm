@@ -2,6 +2,11 @@
   "name": "@nick/dawm",
   "version": "0.1.0",
   "license": "MIT OR Apache-2.0",
+  "author": {
+    "name": "Nicholas Berlette",
+    "email": "nick@berlette.com",
+    "url": "https://github.com/nberlette"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./constants": "./src/constants.ts",
@@ -15,6 +20,7 @@
   },
   "imports": {
     "@nick/atob": "jsr:@nick/atob@0.3.0",
+    "@nick/utf8": "jsr:@nick/utf80.4.0",
     "parsel-js": "npm:parsel-js@1.2.2",
     "debrotli": "npm:debrotli@0.1.0"
   },

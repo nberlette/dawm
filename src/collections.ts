@@ -2,11 +2,13 @@ import {
   FunctionPrototypeCall,
   indexOf,
   isFunction,
+  isNumber,
   isString,
   Number,
   ObjectDefineProperty,
   ObjectFreeze,
   ObjectHasOwn,
+  ReflectDefineProperty,
   ReflectDeleteProperty,
   ReflectGet,
   ReflectGetOwnPropertyDescriptor,
@@ -14,11 +16,12 @@ import {
   ReflectOwnKeys,
   ReflectSet,
   StringPrototypeReplace,
+  StringPrototypeSplit,
   StringPrototypeToLowerCase,
   StringPrototypeTrim,
   uncurryThis,
-  WeakMap,
-  WeakRef,
+  WeakMap as $WeakMap,
+  WeakRef as $WeakRef,
 } from "./_internal.ts";
 import {
   type Attr,
@@ -162,28 +165,159 @@ type NodeListStorage<T extends Node = Node> = WeakMap<
   LinkedList<T>
 >;
 
-const GET_ITEMS_DATA = new WeakMap<
-  IndexedCollection<Element>,
-  () => Element[]
->();
-const NODE_LIST_OWNERS = new WeakMap<IndexedCollection<Node>, WeakRef<Node>>();
-const NODE_LIST_DATA: WeakMap<Node, NodeListStorage> = new WeakMap();
-const DETACHED_DATA: NodeListStorage = new WeakMap();
 const PROXY_TARGET: unique symbol = Symbol("target");
+const LIST_STORAGE: NodeListStorage = new $WeakMap();
+const LIST_GETTERS: WeakMap<
+  IndexedCollection<Node>,
+  () => Node[]
+> = new $WeakMap();
+const LIST_OWNERS: WeakMap<IndexedCollection<Node>, WeakRef<Node>> =
+  new $WeakMap();
+
+const resolveProxyTarget = <T extends Node>(
+  list: IndexedCollection<T>,
+  // deno-lint-ignore no-explicit-any
+): IndexedCollection<T> => (list as any)[PROXY_TARGET] ?? list;
 
 const getListStorage = <T extends Node>(
   list: IndexedCollection<T>,
-  create = false,
+  create = true,
 ): LinkedList<T> => {
-  list = (list as any)[PROXY_TARGET] ?? list;
-  const owner = NODE_LIST_OWNERS.get(list)?.deref() ?? null;
-  const storage = owner ? NODE_LIST_DATA.get(owner) : DETACHED_DATA;
-  let inner = storage?.get(list);
+  const storage = LIST_STORAGE;
+  const target = resolveProxyTarget(list);
+  let inner = storage.get(target) ?? storage.get(list);
   if (!inner) {
     if (!create) throw new TypeError("Illegal invocation");
-    storage?.set(list, inner = new LinkedList());
+    storage.set(list, inner = new LinkedList());
+    storage.set(target, inner);
+  } else {
+    storage.set(list, inner);
+    storage.set(target, inner);
   }
   return inner as LinkedList<T>;
+};
+
+const setListMeta = <T extends Node>(
+  list: IndexedCollection<T>,
+  getter?: (() => T[]) | null,
+  owner?: Node | null,
+): void => {
+  const target = resolveProxyTarget(list);
+  if (getter) {
+    LIST_GETTERS.set(list as IndexedCollection<Node>, getter as () => Node[]);
+    LIST_GETTERS.set(target as IndexedCollection<Node>, getter as () => Node[]);
+  }
+  if (owner) {
+    const ref = new $WeakRef(owner);
+    LIST_OWNERS.set(list as IndexedCollection<Node>, ref);
+    LIST_OWNERS.set(target as IndexedCollection<Node>, ref);
+  }
+};
+
+const getListGetter = <T extends Node>(
+  list: IndexedCollection<T>,
+): (() => T[]) | undefined => {
+  const target = resolveProxyTarget(list);
+  return LIST_GETTERS.get(list as IndexedCollection<Node>) as (() => T[]) ??
+    LIST_GETTERS.get(target as IndexedCollection<Node>) as (() => T[]) ??
+    undefined;
+};
+
+const syncLinkedList = <T extends Node>(
+  list: IndexedCollection<T>,
+  items: Iterable<T>,
+): LinkedList<T> => {
+  const storage = getListStorage(list);
+  storage.head = storage.tail = null;
+  storage.length = 0;
+  for (const item of items) storage.append(item);
+  return storage;
+};
+
+const refreshList = <T extends Node>(
+  list: IndexedCollection<T>,
+): LinkedList<T> => {
+  const getter = getListGetter(list);
+  if (getter) return syncLinkedList(list, getter());
+  return getListStorage(list);
+};
+
+const toArrayIndex = (p: PropertyKey): number | null => {
+  if (!isString(p)) return null;
+  const index = Number(p);
+  return index === (index | 0) && index >= 0 ? index : null;
+};
+
+const ensureIndex = <T extends Node>(
+  storage: LinkedList<T>,
+  index: number,
+): LinkedNode<T> => {
+  while (storage.length <= index) storage.append(null as unknown as T);
+  return storage.item(index)!;
+};
+
+const setListIndex = <T extends Node>(
+  list: IndexedCollection<T>,
+  index: number,
+  value: T,
+): LinkedList<T> => {
+  const storage = getListStorage(list);
+  const node = index < storage.length ? storage.item(index)! : ensureIndex(
+    storage,
+    index,
+  );
+  node.value = value;
+  return storage;
+};
+
+const deleteListIndex = <T extends Node>(
+  list: IndexedCollection<T>,
+  index: number,
+): LinkedList<T> => {
+  const storage = getListStorage(list);
+  if (index < 0 || index >= storage.length) return storage;
+  const node = storage.item(index);
+  if (!node) return storage;
+  const { prev, next } = node;
+  if (prev) prev.next = next;
+  else storage.head = next;
+  if (next) next.prev = prev;
+  else storage.tail = prev;
+  storage.length--;
+  return storage;
+};
+
+const trimList = <T extends Node>(
+  list: IndexedCollection<T>,
+  length: number,
+): LinkedList<T> => {
+  const storage = getListStorage(list);
+  const nextLength = Math.max(0, length | 0);
+  if (nextLength >= storage.length) return storage;
+  if (nextLength === 0) {
+    storage.head = storage.tail = null;
+    storage.length = 0;
+    return storage;
+  }
+  const tail = storage.item(nextLength - 1);
+  if (tail) {
+    tail.next = null;
+    storage.tail = tail;
+    storage.length = nextLength;
+  }
+  return storage;
+};
+
+const indexOfInList = <T>(
+  list: LinkedList<T>,
+  value: T,
+): number => {
+  let i = 0;
+  for (const item of list) {
+    if (item === value) return i;
+    i++;
+  }
+  return -1;
 };
 
 export type SnapshotType =
@@ -201,7 +335,7 @@ interface DOMStringMapInternalData {
 }
 
 class DOMStringMapInternals {
-  static readonly #cache = new WeakMap<
+  static readonly #cache = new $WeakMap<
     DOMStringMap,
     DOMStringMapInternalData
   >();
@@ -277,8 +411,12 @@ class DOMStringMapInternals {
   }
 
   toAttrName(key: string): string {
-    const name = key.replace(/((?<=^|[^A-Z])[A-Z])/g, (_, c) => `-${c}`);
-    return `data-${name.toLowerCase()}`;
+    const name = StringPrototypeReplace(
+      key,
+      /((?<=^|[^A-Z])[A-Z])/g,
+      (_, c) => `-${c}`,
+    );
+    return `data-${StringPrototypeToLowerCase(name)}`;
   }
 
   getNode(map: DOMStringMap): OwnerElement | null {
@@ -319,84 +457,121 @@ const _ = {} as {
 export class NodeList {
   [index: number]: Node;
 
-  constructor(ownerNode?: Node | null, nodes?: Iterable<Node>) {
-    let storage: NodeListStorage | undefined = DETACHED_DATA;
-    if (ownerNode) {
-      NODE_LIST_OWNERS.set(this, new WeakRef(ownerNode));
-      storage = NODE_LIST_DATA.get(ownerNode);
-      if (!storage) NODE_LIST_DATA.set(ownerNode, storage = new WeakMap());
-    }
+  constructor(
+    _ownerNode?: Node | null,
+    nodes?: Iterable<Node>,
+    getItems?: (() => Node[]) | null,
+  ) {
+    const storage = LIST_STORAGE;
     const proxy = new Proxy(this, {
-      get: (t, p) => {
-        if (p === PROXY_TARGET) return t;
-        if (ReflectHas(t, p)) {
-          return ReflectGet(t, p);
-        } else if (isString(p)) {
-          const index = Number(p);
-          if (index === (index | 0) && index >= 0) {
-            return getListStorage(t).at(index);
-          }
+      get: (t, p, r) => {
+        if (p === "constructor") return NodeList;
+        if (p === Symbol.toStringTag) return "NodeList";
+        if (p === "length") return refreshList(t).length;
+        if (p === Symbol.iterator) {
+          return function* () {
+            const list = refreshList(t);
+            for (let i = 0; i < list.length; i++) yield list.at(i);
+          };
         }
+        if (ReflectHas(t, p)) {
+          const v = ReflectGet(t, p, r);
+          return isFunction(v) ? v.bind(t) : v;
+        } else if (isString(p)) {
+          const index = toArrayIndex(p);
+          if (index !== null) return refreshList(t).at(index);
+        }
+        return undefined;
+      },
+      set: (t, p, v, r) => {
+        if (p === "length") {
+          trimList(t, Number(v));
+          return true;
+        }
+        const index = toArrayIndex(p);
+        if (index !== null) {
+          setListIndex(t, index, v as Node);
+          return true;
+        }
+        return ReflectSet(t, p, v, r);
       },
       has: (t, p) => {
         if (isString(p)) {
-          const index = Number(p);
-          if (index === (index | 0) && index >= 0) {
-            return getListStorage(t).at(index) !== null;
-          }
+          const index = toArrayIndex(p);
+          if (index !== null) return refreshList(t).at(index) !== null;
         }
         return ReflectHas(t, p);
       },
       ownKeys: (t) => {
+        const list = refreshList(t);
         const keys = ReflectOwnKeys(t);
-        for (let i = 0; i < t.length; i++) {
+        for (let i = 0; i < list.length; i++) {
           keys.push(String(i));
         }
-        if (!keys.includes("length")) keys.push("length");
-        return keys;
+        return [...new Set(keys).add("length")];
       },
       getOwnPropertyDescriptor: (t, p) => {
-        if (isString(p)) {
-          const index = Number(p);
-          if (index === (index | 0) && index >= 0) {
-            const value = getListStorage(t).at(index);
-            if (value !== null) {
-              return {
-                enumerable: true,
-                configurable: true,
-                writable: true,
-                value,
-              };
-            }
+        const index = toArrayIndex(p);
+        if (index !== null) {
+          const value = refreshList(t).at(index);
+          if (value !== null) {
+            return {
+              enumerable: true,
+              configurable: true,
+              writable: true,
+              value,
+            };
           }
         }
         return ReflectGetOwnPropertyDescriptor(t, p);
       },
+      deleteProperty: (t, p) => {
+        const index = toArrayIndex(p);
+        if (index !== null) {
+          deleteListIndex(t, index);
+          return true;
+        }
+        return ReflectDeleteProperty(t, p);
+      },
+      defineProperty: (t, p, desc) => {
+        const index = toArrayIndex(p);
+        if (index !== null && "value" in desc) {
+          setListIndex(t, index, desc.value as Node);
+          return true;
+        }
+        if (p === "length" && "value" in desc && isNumber(desc.value)) {
+          trimList(t, Number(desc.value));
+          return true;
+        }
+        return ReflectDefineProperty(t, p, desc);
+      },
     });
     const list = new LinkedList(...nodes ?? []);
     storage.set(this, list).set(proxy, list);
+    ObjectDefineProperty(proxy, PROXY_TARGET, { value: this });
+    if (getItems) setListMeta(proxy, getItems, _ownerNode ?? undefined);
     return proxy;
   }
 
   get length(): number {
-    return getListStorage(this).length;
+    return refreshList(this).length;
   }
 
   set length(value: number) {
-    const list = getListStorage(this);
-    list.length = value;
+    trimList(this, value);
   }
 
   item(index: number): Node | null {
-    return getListStorage(this).at(index);
+    return refreshList(this).at(index);
   }
 
   forEach<This = void>(
     callback: (this: This, node: Node, index: number, list: NodeList) => void,
     thisArg?: This,
   ): void {
-    for (let i = 0; i < this.length; i++) {
-      const node = NodeListPrototypeItem(this, i)!;
+    const list = refreshList(this);
+    for (let i = 0; i < list.length; i++) {
+      const node = list.at(i)!;
       FunctionPrototypeCall(callback, thisArg, node, i, this);
     }
   }
@@ -410,8 +585,9 @@ export class NodeList {
   }
 
   *entries(): IterableIterator<[number, Node]> {
-    for (let i = 0; i < this.length; i++) {
-      yield [i, NodeListPrototypeItem(this, i)!];
+    const list = refreshList(this);
+    for (let i = 0; i < list.length; i++) {
+      yield [i, list.at(i)!];
     }
   }
 
@@ -432,7 +608,6 @@ export class NodeList {
 }
 
 const NodeListPrototype = ObjectFreeze(NodeList.prototype);
-const NodeListPrototypeItem = uncurryThis(NodeListPrototype.item);
 const NodeListPrototypeValues = uncurryThis(NodeListPrototype.values);
 const NodeListPrototypeEntries = uncurryThis(NodeListPrototype.entries);
 
@@ -474,8 +649,13 @@ export interface NodeListConstructor {
   new <T extends Node>(
     ownerNode?: Node | null,
     nodes?: Iterable<T>,
+    getItems?: (() => T[]) | null,
   ): NodeListOf<T>;
-  new (ownerNode?: Node | null, nodes?: Iterable<Node>): NodeList;
+  new (
+    ownerNode?: Node | null,
+    nodes?: Iterable<Node>,
+    getItems?: (() => Node[]) | null,
+  ): NodeList;
   readonly prototype: NodeList;
 }
 
@@ -508,20 +688,31 @@ export type OwnerElement = Element | Document | DocumentFragment;
 export class HTMLCollection {
   [index: number]: Element;
 
-  constructor(owner?: OwnerElement | null, nodes?: Iterable<Element>) {
-    if (owner) NODE_LIST_OWNERS.set(this, new WeakRef(owner));
-    const storage = owner ? NODE_LIST_DATA.get(owner)! : DETACHED_DATA;
+  constructor(
+    owner?: OwnerElement | null,
+    nodes?: Iterable<Element>,
+    getItems?: (() => Element[]) | null,
+  ) {
+    if (owner) LIST_OWNERS.set(this, new $WeakRef(owner));
+    const storage = LIST_STORAGE;
 
     const proxy = new Proxy(this, {
-      get: (t, p) => {
-        if (p === PROXY_TARGET) return t;
+      get: (t, p, r) => {
+        if (p === "constructor") return HTMLCollection;
+        if (p === Symbol.toStringTag) return "HTMLCollection";
+        if (p === "length") return refreshList(t).length;
+        if (p === Symbol.iterator) {
+          return function* () {
+            const list = refreshList(t);
+            for (let i = 0; i < list.length; i++) yield list.at(i);
+          };
+        }
         if (ReflectHas(t, p)) {
-          return ReflectGet(t, p);
+          const v = ReflectGet(t, p, r);
+          return isFunction(v) ? v.bind(t) : v;
         } else if (isString(p)) {
-          const index = Number(p);
-          if (index === (index | 0) && index >= 0) {
-            return getListStorage(t).at(index);
-          }
+          const index = toArrayIndex(p);
+          if (index !== null) return refreshList(t).at(index);
           const namedItem = t.namedItem(p);
           if (namedItem) return namedItem;
         }
@@ -529,55 +720,61 @@ export class HTMLCollection {
       },
       has: (t, p) => {
         if (isString(p)) {
-          const index = Number(p);
-          if (index === (index | 0) && index >= 0) {
-            return getListStorage(t).at(index) !== null;
-          }
-          const namedItem = t.namedItem(p);
-          if (namedItem) return true;
+          const index = toArrayIndex(p);
+          if (index !== null) return refreshList(t).at(index) !== null;
+          if (t.namedItem(p)) return true;
         }
         return ReflectHas(t, p);
       },
-      set: (t, p, v) => {
+      set: (t, p, v, r) => {
+        if (p === "length") {
+          trimList(t, Number(v));
+          return true;
+        }
         if (isString(p)) {
-          const index = Number(p);
-          const list = getListStorage(t);
-          let node: LinkedNode<Element> | null = null;
-          if (index === (index | 0) && index >= 0) {
-            node = list.item(index);
-          } else if (t.namedItem(p)) {
-            node = list.item(indexOf(t, t.namedItem(p)!));
-          }
-          if (node) {
-            node.value = v;
+          const index = toArrayIndex(p);
+          if (index !== null) {
+            setListIndex(t, index, v as Element);
             return true;
           }
+          const namedItem = t.namedItem(p);
+          if (namedItem) {
+            const list = refreshList(t);
+            const nodeIndex = indexOfInList(list, namedItem);
+            if (nodeIndex !== -1) {
+              setListIndex(t, nodeIndex, v as Element);
+              return true;
+            }
+          }
         }
-        return ReflectSet(t, p, v);
+        return ReflectSet(t, p, v, r);
       },
       deleteProperty: (t, p) => {
         if (isString(p)) {
-          const index = Number(p);
-          const list = getListStorage(t);
-          let nodeIndex: number | null = null;
-          if (index === (index | 0) && index >= 0) {
-            nodeIndex = index;
-          } else if (t.namedItem(p)) {
-            nodeIndex = indexOf(t, t.namedItem(p)!);
-          }
-          if (nodeIndex !== null) {
-            list.splice(nodeIndex, 1);
+          const index = toArrayIndex(p);
+          if (index !== null) {
+            deleteListIndex(t, index);
             return true;
+          }
+          const namedItem = t.namedItem(p);
+          if (namedItem) {
+            const list = refreshList(t);
+            const nodeIndex = indexOfInList(list, namedItem);
+            if (nodeIndex !== -1) {
+              deleteListIndex(t, nodeIndex);
+              return true;
+            }
           }
         }
         return ReflectDeleteProperty(t, p);
       },
       ownKeys: (t) => {
+        const list = refreshList(t);
         const keys = ReflectOwnKeys(t);
 
-        if (t.length) {
-          for (let i = 0; i < t.length; i++) {
-            const item = t[i];
+        if (list.length) {
+          for (let i = 0; i < list.length; i++) {
+            const item = list.at(i)!;
             if (item.id && !keys.includes(item.id)) {
               keys.push(item.id);
             } else if (item.hasAttribute("name")) {
@@ -587,16 +784,13 @@ export class HTMLCollection {
             if (!keys.includes(String(i))) keys.push(String(i));
           }
         }
-        if (!keys.includes("length")) keys.push("length");
-        return keys;
+        return [...new Set(keys).add("length")];
       },
       getOwnPropertyDescriptor: (t, p) => {
         if (isString(p)) {
           let value: Element | undefined;
-          const index = Number(p);
-          if (index === (index | 0) && index >= 0) {
-            value = getListStorage(t).at(index) ?? undefined;
-          }
+          const index = toArrayIndex(p);
+          if (index !== null) value = refreshList(t).at(index) ?? undefined;
           if (!value) {
             const namedItem = t.namedItem(p);
             if (namedItem) value = namedItem;
@@ -612,28 +806,41 @@ export class HTMLCollection {
         }
         return ReflectGetOwnPropertyDescriptor(t, p);
       },
-      defineProperty: () => true, // no-op to prevent errors and keep readonly
+      defineProperty: (t, p, desc) => {
+        const index = toArrayIndex(p);
+        if (index !== null && "value" in desc) {
+          setListIndex(t, index, desc.value as Element);
+          return true;
+        }
+        if (p === "length" && "value" in desc && isNumber(desc.value)) {
+          trimList(t, Number(desc.value));
+          return true;
+        }
+        return ReflectDefineProperty(t, p, desc);
+      },
       isExtensible: () => false,
       preventExtensions: () => true,
     });
     const list = new LinkedList(...nodes ?? []);
     storage.set(this, list).set(proxy, list);
+    ObjectDefineProperty(proxy, PROXY_TARGET, { value: this });
+    if (getItems) setListMeta(proxy, getItems, owner ?? undefined);
+    else if (owner) setListMeta(proxy, null, owner);
     return proxy;
   }
 
   get length(): number {
-    let count = 0;
-    for (const _ of this) count++;
-    return count;
+    return refreshList(this).length;
   }
 
   item(index: number): Element | null {
-    return this[index] ?? null;
+    return refreshList(this).at(index);
   }
 
   namedItem(name: string): Element | null {
-    for (let i = 0; i < this.length; i++) {
-      const item = this[i];
+    const list = refreshList(this);
+    for (let i = 0; i < list.length; i++) {
+      const item = list.at(i)!;
       if (
         item.id === name || item.getAttribute("id") === name ||
         item.getAttribute("name") === name
@@ -645,7 +852,7 @@ export class HTMLCollection {
   }
 
   *[Symbol.iterator](): IterableIterator<Element> {
-    return yield* getListStorage(this);
+    return yield* refreshList(this);
   }
 
   declare readonly [Symbol.toStringTag]: "HTMLCollection";
@@ -699,10 +906,12 @@ export interface HTMLCollectionConstructor {
   new <T extends Element>(
     ownerElement?: OwnerElement | null,
     nodes?: Iterable<T>,
+    getItems?: (() => T[]) | null,
   ): HTMLCollectionOf<T>;
   new (
     ownerElement?: OwnerElement | null,
     nodes?: Iterable<Element>,
+    getItems?: (() => Element[]) | null,
   ): HTMLCollection;
   readonly prototype: HTMLCollection;
 }
@@ -733,16 +942,7 @@ export function createHTMLCollection<T extends Element>(
   getItems: () => T[],
   _name?: string,
 ): HTMLCollectionOf<T> {
-  const collection = new HTMLCollectionOf<T>(owner, getItems());
-  // TODO: implement live updating
-  GET_ITEMS_DATA.set(collection, getItems);
-  NODE_LIST_OWNERS.set(collection, new WeakRef(owner));
-  let storage = NODE_LIST_DATA.get(owner);
-  if (!storage) NODE_LIST_DATA.set(owner, storage = new WeakMap());
-  if (!storage.has(collection)) {
-    storage.set(collection, new LinkedList(...getItems()));
-  }
-  return collection;
+  return new HTMLCollectionOf<T>(owner, getItems(), getItems);
 }
 
 // #endregion HTMLCollection
@@ -772,7 +972,8 @@ export class DOMTokenList {
     if (!this.#updating) {
       this.#updating = true;
       value ??= this.#ownerElement.getAttribute(this.#attributeName) ?? "";
-      this.#tokens = value.trim().split(/\s+/).filter((t) => t.length > 0);
+      this.#tokens = StringPrototypeSplit(StringPrototypeTrim(value), /\s+/)
+        .filter((t) => t.length > 0);
       this.#updating = false;
     }
     return this.#tokens ??= [];
@@ -814,12 +1015,14 @@ export class DOMTokenList {
   add(...tokens: string[]): void {
     const list = this.#updateTokens();
     list.push(...tokens);
-    this.#tokens = list.filter((t, i, a) => a.indexOf(t) === i);
+    this.#tokens = list.filter((t, i, a) => indexOf(a, t) === i);
     this.#updateAttribute();
   }
 
   remove(...tokens: string[]): void {
-    this.#tokens = this.#updateTokens().filter((t) => !tokens.includes(t));
+    this.#tokens = this.#updateTokens().filter((t) =>
+      indexOf(tokens, t) === -1
+    );
     this.#updateAttribute();
   }
 
@@ -938,31 +1141,6 @@ export class DOMStringMap {
   }
 }
 
-/**
- * Serializes a {@linkcode DOMStringMap} into a string of HTML data attributes.
- *
- * @param dataset - The DOMStringMap to serialize.
- * @returns A string representation of the DOMStringMap as HTML data attributes.
- * @category Collections
- * @tags DOMStringMap, Serialization
- */
-export function serializeDOMStringMap(dataset: DOMStringMap): string {
-  let out = "";
-  for (const k in dataset) {
-    if (!ObjectHasOwn(dataset, k)) continue;
-    const v = dataset[k];
-    if (v == null) continue;
-    let p = StringPrototypeReplace(
-      k,
-      /([a-z]|^)([A-Z](?![A-Z]))/g,
-      (_, $1, $2) => `${$1}-${$2}`,
-    );
-    p = StringPrototypeToLowerCase(StringPrototypeTrim(p));
-    out += ` data-${p}="${v}"`;
-  }
-  return out;
-}
-
 // #endregion DOMStringMap
 
 // #region NamedNodeMap
@@ -977,17 +1155,26 @@ export class NamedNodeMap {
   [index: number]: Attr;
 
   constructor(ownerElement: Element | null, attrs?: Iterable<Attr>) {
-    let storage: NodeListStorage | undefined = DETACHED_DATA;
+    const storage = LIST_STORAGE;
     if (ownerElement) {
-      storage = NODE_LIST_DATA.get(ownerElement);
-      if (!storage) NODE_LIST_DATA.set(ownerElement, storage = new WeakMap());
+      // storage = LIST_STORAGE.get(ownerElement);
+      // if (!storage) LIST_STORAGE.set(ownerElement, storage = new $WeakMap());
     }
 
     const proxy = new Proxy(this, {
       get: (t, p) => {
-        if (p === PROXY_TARGET) return t;
+        if (p === "constructor") return NamedNodeMap;
+        if (p === Symbol.toStringTag) return "NamedNodeMap";
+        if (p === "length") return getListStorage(t).length;
+        if (p === Symbol.iterator) {
+          return function* () {
+            const list = getListStorage(t);
+            for (let i = 0; i < list.length; i++) yield list.at(i);
+          };
+        }
         if (ReflectHas(t, p)) {
-          return ReflectGet(t, p);
+          const v = ReflectGet(t, p);
+          return isFunction(v) ? v.bind(t) : v;
         } else if (isString(p)) {
           const index = Number(p);
           if (index === (index | 0) && index >= 0) {
@@ -1030,12 +1217,11 @@ export class NamedNodeMap {
           for (let i = 0; i < t.length; i++) {
             const attr = t[i];
             if (!attr?.name) continue;
-            if (!keys.includes(attr.name)) keys.push(attr.name);
-            if (!keys.includes(String(i))) keys.push(String(i));
+            keys.push(attr.name);
+            keys.push(String(i));
           }
         }
-        if (!keys.includes("length")) keys.push("length");
-        return keys;
+        return [...new Set(keys).add("length")];
       },
       getOwnPropertyDescriptor: (t, p) => {
         if (isString(p)) {
@@ -1155,16 +1341,16 @@ export class NamedNodeMap {
   }
 
   *keys(): IterableIterator<number> {
-    for (const v of NodeListPrototypeEntries(this)) yield v[0];
+    for (let i = 0; i < this.length; i++) yield i;
   }
 
   *values(): IterableIterator<Attr> {
-    for (const v of NodeListPrototypeEntries(this)) yield v[1] as Attr;
+    return yield* getListStorage<Attr>(this);
   }
 
   *entries(): IterableIterator<[number, Attr]> {
     for (let i = 0; i < this.length; i++) {
-      yield [i, NodeListPrototypeItem(this, i)! as Attr];
+      yield [i, this.item(i)! as Attr];
     }
   }
 
@@ -1178,13 +1364,13 @@ export class NamedNodeMap {
     thisArg?: This,
   ): void {
     for (let i = 0; i < this.length; i++) {
-      const node = NodeListPrototypeItem(this, i)!;
+      const node = this.item(i)!;
       FunctionPrototypeCall(callback, thisArg, node, i, this);
     }
   }
 
   *[Symbol.iterator](): IterableIterator<Attr> {
-    return yield* NodeListPrototypeValues(this) as IterableIterator<Attr>;
+    return yield* getListStorage<Attr>(this);
   }
 
   declare readonly [Symbol.toStringTag]: "NamedNodeMap";
@@ -1214,61 +1400,6 @@ export function createNamedNodeMap(
   attrs: Iterable<Attr>,
 ): NamedNodeMap {
   return new NamedNodeMap(owner, attrs);
-}
-
-/**
- * Serializes a {@linkcode NamedNodeMap} into a string of HTML attributes.
- *
- * @param attrs - The NamedNodeMap to serialize.
- * @returns A string representation of the NamedNodeMap as HTML attributes.
- * @category Collections
- * @tags NamedNodeMap, Serialization
- */
-export function serializeNamedNodeMap(attrs: NamedNodeMap): string {
-  let out = "";
-  for (const attr of attrs) {
-    let { name: k, value: v } = attr;
-
-    if (
-      k === "children" || (
-        !v &&
-        (k === "style" || k === "class" || k === "className" || k === "id")
-      )
-    ) {
-      continue;
-    }
-    if ((!v && v !== "") || v === "false") continue;
-    // normalize attribute names from camelCase to kebab-case, where needed.
-    if (k.startsWith("aria")) {
-      k = k.replace(/^aria([A-Z]\w+)$/, "aria-$1").toLowerCase();
-    } else if (k === "className" || k === "classList" || k === "class") {
-      k = "class"; // normalize className/class/classList attrs
-    } else if (k === "htmlFor") {
-      k = "for"; // normalize htmlFor/for attrs
-    } else if (k === "httpEquiv") {
-      k = "http-equiv"; // normalize httpEquiv/http-equiv attrs
-    } else if (k === "tabIndex") {
-      k = "tabindex"; // normalize tabIndex/tabindex attrs
-    } else if (k === "readOnly") {
-      k = "readonly"; // normalize readOnly/readonly attrs
-    } else if (k === "maxLength") {
-      k = "maxlength"; // normalize maxLength/maxlength attrs
-    } else {
-      const kebab = StringPrototypeToLowerCase(
-        StringPrototypeReplace(
-          k,
-          /([a-z]|^)([A-Z](?![A-Z]))/g,
-          (_, $1, $2) => `${$1}-${$2}`,
-        ),
-      );
-      if (!kebab.startsWith("aria-") && !kebab.startsWith("data-")) {
-        // aria attributes should be kebab-case
-        k = kebab;
-      }
-    }
-    out += ` ${k}="${v}"`;
-  }
-  return out;
 }
 
 // #endregion NamedNodeMap
