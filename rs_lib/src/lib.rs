@@ -49,7 +49,6 @@ pub use quirks_mode::QuirksMode;
 ///
 /// As with the strings, node hierarchies are represented using integer indices
 /// that need to be resolved relative to the `.nodes` array.
-#[doc = include_str!("../docs/parse_html.in.md")]
 #[wasm_bindgen]
 pub fn parse_doc(input: &str, mime: &str, options: Option<Object>) -> JsValue {
   let mime_lower = mime.trim().to_ascii_lowercase();
@@ -77,7 +76,6 @@ pub fn parse_doc(input: &str, mime: &str, options: Option<Object>) -> JsValue {
 ///
 /// @see {@linkcode parse_frag} for parsing HTML fragments.
 /// @see {@linkcode parse_xml} for parsing XML-like documents.
-#[doc = include_str!("../docs/parse_html.in.md")]
 #[wasm_bindgen]
 pub fn parse_html(input: &str, options: Option<Object>) -> JsValue {
   let parse_options = options
@@ -126,7 +124,6 @@ pub fn parse_xml(input: &str, options: JsValue) -> JsValue {
 /// tree and resolve string references.
 ///
 /// @see {@linkcode parse_html} for parsing full HTML documents.
-#[doc = include_str!("../docs/parse_html.in.md")]
 #[wasm_bindgen]
 pub fn parse_frag(input: &str, options: JsValue) -> JsValue {
   let mut frag_options = FragmentParseOptions::default();
