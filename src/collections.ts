@@ -349,8 +349,13 @@ class DOMStringMapInternals {
     fn: (this: DOMStringMap, map: DOMStringMap) => DOMStringMapInternalData,
   ): DOMStringMapInternalData {
     let data = DOMStringMapInternals.get(map);
-    if (!data) DOMStringMapInternals.#cache.set(map, data = fn.call(map, map));
-    return data;
+    if (!data) {
+      DOMStringMapInternals.#cache.set(
+        map,
+        data = FunctionPrototypeCall(fn, map, map),
+      );
+    }
+    return data!;
   }
 
   ensure(
@@ -373,15 +378,18 @@ class DOMStringMapInternals {
 
   set(map: DOMStringMap, k: string, v: string | null | undefined): boolean {
     const { data, node } = this.ensure(map);
+    data[k] = v ?? undefined;
     if (node) {
       const name = this.toAttrName(k);
       let attr = node.attributes?.getNamedItem(name) ?? null;
       if (!attr && node.ownerDocument) {
         attr = node.ownerDocument.createAttribute(name, v ?? "");
+        attr && node.attributes?.setNamedItem(attr);
+      } else if (!attr && node.nodeType === 1) {
+        const el = node as Element;
+        el.setAttribute(name, v ?? "");
       }
-      attr && node.attributes?.setNamedItem(attr);
     }
-    data[k] = v ?? undefined;
     return true;
   }
 
@@ -1118,8 +1126,7 @@ export class DOMStringMap {
           ? _.DOMStringMap.get(t, p)
           : ReflectGet(t, p, r),
       has: (t, p) => isString(p) ? _.DOMStringMap.has(t, p) : ReflectHas(t, p),
-      set: (t, p, v, r) =>
-        isString(p) ? _.DOMStringMap.set(t, p, v) : ReflectSet(t, p, v, r),
+      set: (t, p, v) => _.DOMStringMap.set(t, String(p), v as string | null),
       deleteProperty: (t, p) =>
         isString(p) ? _.DOMStringMap.delete(t, p) : ReflectDeleteProperty(t, p),
       ownKeys: (t) => {
@@ -1127,6 +1134,17 @@ export class DOMStringMap {
         const data = _.DOMStringMap.getData(t);
         const props = Object.keys(data);
         return [...new Set([...keys, ...props])];
+      },
+      getOwnPropertyDescriptor: (t, p) => {
+        if (isString(p) && _.DOMStringMap.has(t, p)) {
+          return {
+            value: _.DOMStringMap.get(t, p),
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          };
+        }
+        return ReflectGetOwnPropertyDescriptor(t, p);
       },
     });
   }
@@ -1236,7 +1254,7 @@ export class NamedNodeMap {
             return {
               value,
               writable: false,
-              enumerable: false,
+              enumerable: true,
               configurable: true,
             };
           }

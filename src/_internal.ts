@@ -46,6 +46,12 @@ export const Object = globalThis.Object;
 export const ObjectCreate = Object.create;
 export const ObjectAssign = Object.assign;
 export const ObjectFreeze = Object.freeze;
+
+export const ObjectKeys = Object.keys;
+export const ObjectValues = Object.values;
+export const ObjectEntries = Object.entries;
+export const ObjectFromEntries = Object.fromEntries;
+
 export const ObjectPrototype = Object.prototype;
 export const ObjectPrototypeToString = uncurryThis(ObjectPrototype.toString);
 export const ObjectDefineProperty = Object.defineProperty;
@@ -54,8 +60,8 @@ export const ObjectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 export const ObjectGetOwnPropertyNames = Object.getOwnPropertyNames;
 export const ObjectGetOwnPropertySymbols = Object.getOwnPropertySymbols;
 
-export const ObjectHasOwnProperty = uncurryThis(Object.hasOwnProperty);
 export const ObjectIsPrototypeOf = uncurryThis(Object.isPrototypeOf);
+export const ObjectHasOwnProperty = uncurryThis(Object.hasOwnProperty);
 export const ObjectPropertyIsEnumerable = uncurryThis(
   Object.propertyIsEnumerable,
 );
@@ -76,18 +82,22 @@ export const StringPrototypeStartsWith = uncurryThis(
 );
 
 export const Number = globalThis.Number;
-export const NumberIsNaN = Number.isNaN ||
-  function (it: unknown): it is number {
-    return isNumber(it) && it !== it;
-  };
+export const NumberIsNaN = Number.isNaN || function isNaN(it): it is number {
+  return isNumber(it) && it !== it;
+};
+export const NumberParseInt = Number.parseInt || globalThis.parseInt;
+export const NumberParseFloat = Number.parseFloat || globalThis.parseFloat;
+
+export const JSON = globalThis.JSON;
+export const JSONParse = JSON.parse;
+export const JSONStringify = JSON.stringify;
 
 export const Array = globalThis.Array;
 export const ArrayPrototype = Array.prototype;
-export const ArrayIsArray = Array.isArray ||
-  function (it: unknown): it is unknown[] {
-    return typeof it === "object" && it !== null &&
-      ObjectPrototypeToString(it) === "[object Array]";
-  };
+export const ArrayIsArray = Array.isArray || function (it): it is unknown[] {
+  return typeof it === "object" && it !== null &&
+    ObjectPrototypeToString(it) === "[object Array]";
+};
 
 export function indexOf<T>(
   target: ArrayLike<T>,
@@ -104,31 +114,31 @@ export function indexOf<T>(
 }
 
 export const pop: <T>(target: ArrayLike<T>) => T | undefined = uncurryThis(
-  Array.prototype.pop,
+  ArrayPrototype.pop,
 );
 
 export const push: <T>(target: ArrayLike<T>, ...items: T[]) => number =
-  uncurryThis(Array.prototype.push);
+  uncurryThis(ArrayPrototype.push);
 
 export const shift: <T>(target: ArrayLike<T>) => T | undefined = uncurryThis(
-  Array.prototype.shift,
+  ArrayPrototype.shift,
 );
 
 export const slice: <T>(
   target: ArrayLike<T>,
   start?: number,
   end?: number,
-) => T[] = uncurryThis(Array.prototype.slice);
+) => T[] = uncurryThis(ArrayPrototype.slice);
 
 export const splice: <T>(
   target: ArrayLike<T>,
   start: number,
   deleteCount?: number,
   ...items: T[]
-) => T[] = uncurryThis(Array.prototype.splice);
+) => T[] = uncurryThis(ArrayPrototype.splice);
 
 export const unshift: <T>(target: ArrayLike<T>, ...items: T[]) => number =
-  uncurryThis(Array.prototype.unshift);
+  uncurryThis(ArrayPrototype.unshift);
 
 export function isArray<T>(
   it: unknown,

@@ -1,0 +1,277 @@
+{
+  "name": "dawm",
+  "version": "0.1.0-rc.2",
+  "description": "High-performance headless DOM toolkit with an HTML/XML parser written in Rust, and DOM APIs implemented in TypeScript. Purpose-built for server-side workflows like web scraping and static site generation.",
+  "keywords": [
+    "dom",
+    "wasm",
+    "living-dom",
+    "web-scraping",
+    "data-extraction",
+    "headless",
+    "server-side",
+    "dom-manipulation",
+    "dom-parser",
+    "tree-walking",
+    "serialization",
+    "selectors",
+    "query-selector-all",
+    "xml-parser",
+    "html-parser",
+    "virtual-dom",
+    "rust"
+  ],
+  "author": {
+    "name": "Nicholas Berlette",
+    "email": "nick@berlette.com",
+    "url": "https://github.com/nberlette"
+  },
+  "homepage": "https://github.com/nberlette/dawm#readme",
+  "repository": "https://github.com/nberlette/dawm",
+  "license": "MIT OR Apache-2.0",
+  "bugs": "https://github.com/nberlette/dawm/issues",
+  "main": "./cjs/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./esm/index.d.ts",
+        "default": "./esm/index.js"
+      },
+      "require": {
+        "types": "./cjs/index.d.ts",
+        "default": "./cjs/index.js"
+      }
+    },
+    "./collections": {
+      "import": {
+        "types": "./esm/collections.d.ts",
+        "default": "./esm/collections.js"
+      },
+      "require": {
+        "types": "./cjs/collections.d.ts",
+        "default": "./cjs/collections.js"
+      }
+    },
+    "./collections.js": {
+      "import": {
+        "types": "./esm/collections.d.ts",
+        "default": "./esm/collections.js"
+      },
+      "require": {
+        "types": "./cjs/collections.d.ts",
+        "default": "./cjs/collections.js"
+      }
+    },
+    "./dom": {
+      "import": {
+        "types": "./esm/dom.d.ts",
+        "default": "./esm/dom.js"
+      },
+      "require": {
+        "types": "./cjs/dom.d.ts",
+        "default": "./cjs/dom.js"
+      }
+    },
+    "./dom.js": {
+      "import": {
+        "types": "./esm/dom.d.ts",
+        "default": "./esm/dom.js"
+      },
+      "require": {
+        "types": "./cjs/dom.d.ts",
+        "default": "./cjs/dom.js"
+      }
+    },
+    "./guards": {
+      "import": {
+        "types": "./esm/guards.d.ts",
+        "default": "./esm/guards.js"
+      },
+      "require": {
+        "types": "./cjs/guards.d.ts",
+        "default": "./cjs/guards.js"
+      }
+    },
+    "./guards.js": {
+      "import": {
+        "types": "./esm/guards.d.ts",
+        "default": "./esm/guards.js"
+      },
+      "require": {
+        "types": "./cjs/guards.d.ts",
+        "default": "./cjs/guards.js"
+      }
+    },
+    "./options": {
+      "import": {
+        "types": "./esm/options.d.ts",
+        "default": "./esm/options.js"
+      },
+      "require": {
+        "types": "./cjs/options.d.ts",
+        "default": "./cjs/options.js"
+      }
+    },
+    "./options.js": {
+      "import": {
+        "types": "./esm/options.d.ts",
+        "default": "./esm/options.js"
+      },
+      "require": {
+        "types": "./cjs/options.d.ts",
+        "default": "./cjs/options.js"
+      }
+    },
+    "./parse": {
+      "import": {
+        "types": "./esm/parse.d.ts",
+        "default": "./esm/parse.js"
+      },
+      "require": {
+        "types": "./cjs/parse.d.ts",
+        "default": "./cjs/parse.js"
+      }
+    },
+    "./parse.js": {
+      "import": {
+        "types": "./esm/parse.d.ts",
+        "default": "./esm/parse.js"
+      },
+      "require": {
+        "types": "./cjs/parse.d.ts",
+        "default": "./cjs/parse.js"
+      }
+    },
+    "./select": {
+      "import": {
+        "types": "./esm/select.d.ts",
+        "default": "./esm/select.js"
+      },
+      "require": {
+        "types": "./cjs/select.d.ts",
+        "default": "./cjs/select.js"
+      }
+    },
+    "./select.js": {
+      "import": {
+        "types": "./esm/select.d.ts",
+        "default": "./esm/select.js"
+      },
+      "require": {
+        "types": "./cjs/select.d.ts",
+        "default": "./cjs/select.js"
+      }
+    },
+    "./serialize": {
+      "import": {
+        "types": "./esm/serialize.d.ts",
+        "default": "./esm/serialize.js"
+      },
+      "require": {
+        "types": "./cjs/serialize.d.ts",
+        "default": "./cjs/serialize.js"
+      }
+    },
+    "./serialize.js": {
+      "import": {
+        "types": "./esm/serialize.d.ts",
+        "default": "./esm/serialize.js"
+      },
+      "require": {
+        "types": "./cjs/serialize.d.ts",
+        "default": "./cjs/serialize.js"
+      }
+    },
+    "./tree": {
+      "import": {
+        "types": "./esm/tree.d.ts",
+        "default": "./esm/tree.js"
+      },
+      "require": {
+        "types": "./cjs/tree.d.ts",
+        "default": "./cjs/tree.js"
+      }
+    },
+    "./tree.js": {
+      "import": {
+        "types": "./esm/tree.d.ts",
+        "default": "./esm/tree.js"
+      },
+      "require": {
+        "types": "./cjs/tree.d.ts",
+        "default": "./cjs/tree.js"
+      }
+    },
+    "./types": {
+      "import": {
+        "types": "./esm/types.d.ts",
+        "default": "./esm/types.js"
+      },
+      "require": {
+        "types": "./cjs/types.d.ts",
+        "default": "./cjs/types.js"
+      }
+    },
+    "./types.js": {
+      "import": {
+        "types": "./esm/types.d.ts",
+        "default": "./esm/types.js"
+      },
+      "require": {
+        "types": "./cjs/types.d.ts",
+        "default": "./cjs/types.js"
+      }
+    },
+    "./wasm": {
+      "import": {
+        "types": "./esm/wasm.d.ts",
+        "default": "./esm/wasm.js"
+      },
+      "require": {
+        "types": "./cjs/wasm.d.ts",
+        "default": "./cjs/wasm.js"
+      }
+    },
+    "./wasm.js": {
+      "import": {
+        "types": "./esm/wasm.d.ts",
+        "default": "./esm/wasm.js"
+      },
+      "require": {
+        "types": "./cjs/wasm.d.ts",
+        "default": "./cjs/wasm.js"
+      }
+    },
+    "./wire": {
+      "import": {
+        "types": "./esm/wire.d.ts",
+        "default": "./esm/wire.js"
+      },
+      "require": {
+        "types": "./cjs/wire.d.ts",
+        "default": "./cjs/wire.js"
+      }
+    },
+    "./wire.js": {
+      "import": {
+        "types": "./esm/wire.d.ts",
+        "default": "./esm/wire.js"
+      },
+      "require": {
+        "types": "./cjs/wire.d.ts",
+        "default": "./cjs/wire.js"
+      }
+    }
+  },
+  "scripts": {},
+  "readme": "README.md",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "debrotli": "0.1.0"
+  }
+}

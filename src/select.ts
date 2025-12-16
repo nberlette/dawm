@@ -1,12 +1,21 @@
 // deno-lint-ignore-file no-fallthrough
-import type { Node } from "./index.ts";
+import {
+  JSONParse,
+  Number,
+  NumberIsNaN,
+  NumberParseInt,
+  ObjectEntries,
+  StringPrototypeToLowerCase,
+  WeakSet,
+} from "./_internal.ts";
+import { type Element, isNodeLike, type Node } from "./dom.ts";
 import {
   type AST,
   type AttributeToken,
   parse,
   specificity as getSpecificity,
   specificityToNumber,
-} from "./vendor/parsel-js/index.ts";
+} from "./vendor/parsel-js/parsel.ts";
 
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;
@@ -24,7 +33,46 @@ export function walkSync(
   }
 }
 
-export function specificity(selector: string) {
+export function* traverseSync<
+  TNode extends Node = Node,
+  TParent extends Node | null = TNode | null,
+>(
+  node: Node,
+  test: (node: Node, parent?: TParent, index?: number) => node is TNode,
+  parent?: TParent,
+): Generator<TNode, void, number> {
+  const childNodes = node.childNodes;
+  for (let i = 0; i < childNodes.length; i++) {
+    const child = childNodes[i];
+    parent ??= node as TParent;
+    if (test(child, parent, i)) {
+      const next = yield child;
+      if (next != null) i = next - 1;
+    }
+    yield* traverseSync<TNode, TParent>(child, test, parent);
+  }
+}
+
+export async function* walk(
+  node: Node,
+  callback: (
+    node: Node,
+    parent?: Node | null,
+    index?: number,
+  ) => void | Promise<void>,
+  parent?: Node | null,
+): AsyncGenerator<Node, void, number> {
+  const childNodes = node.childNodes;
+  let i = 0, parentNode = parent, child = node;
+  while (child) {
+    if (i) parentNode ??= node;
+    await callback(child, parentNode, i);
+    const next = yield child;
+    child = childNodes[next ?? ++i];
+  }
+}
+
+export function specificity(selector: string): number {
   return specificityToNumber(getSpecificity(selector), 10);
 }
 
@@ -49,7 +97,9 @@ export function querySelector(node: Node, selector: string): Node | null {
       },
       { single: true },
     )[0];
-  } catch {
+  } catch (node) {
+    if (isNodeLike(node)) return node as Node;
+    if (Error.isError(node)) throw node;
     return null;
   }
 }
@@ -70,11 +120,11 @@ export function querySelectorAll(node: Node, selector: string): Node[] {
 
 export default querySelectorAll;
 
-interface Matcher {
+export interface Matcher {
   (n: Node, parent?: Node | null, index?: number): boolean;
 }
 
-function select(
+export function select(
   node: Node,
   match: Matcher,
   opts: { single?: boolean } = { single: false },
@@ -90,9 +140,9 @@ function select(
   return nodes;
 }
 
-const getAttributeMatch = (
+function getAttributeEqualer(
   selector: AttributeToken,
-): (a: string, b: string) => boolean => {
+): (a: string, b: string) => boolean {
   const { operator = "=" } = selector;
   switch (operator) {
     case "=":
@@ -109,45 +159,53 @@ const getAttributeMatch = (
       return (a: string, b: string) => a.startsWith(b);
   }
   return (_, __) => false;
-};
+}
 
-const nthChildIndex = (node: Node, parent?: Node | null) =>
-  [...parent?.childNodes ?? []]
-    .filter((n: Node) => n.nodeType === ELEMENT_NODE)
-    .findIndex((n: Node) => n === node);
-const nthChild = (formula: string) => {
+function nthChildIndex(node: Node, parent?: Node | null): number {
+  return children(parent).findIndex((n) => n === node);
+}
+
+function nthChild(formula: string): (n: number) => number {
   let [_, A = "1", B = "0"] =
     /^\s*(?:(-?(?:\d+)?)n)?\s*\+?\s*(\d+)?\s*$/gm.exec(formula) ?? [];
   if (A.length === 0) A = "1";
-  const a = Number.parseInt(A === "-" ? "-1" : A);
-  const b = Number.parseInt(B);
+  const a = NumberParseInt(A === "-" ? "-1" : A);
+  const b = NumberParseInt(B);
   return (n: number) => a * n + b;
-};
-const lastChild = (node: Node, parent?: Node | null) =>
-  [...parent?.childNodes ?? []].filter((n) => n.nodeType === ELEMENT_NODE)
-    .pop() === node;
-const firstChild = (node: Node, parent?: Node | null) =>
-  [...parent?.childNodes ?? []].filter((n) => n.nodeType === ELEMENT_NODE)
-    .shift() ===
-    node;
-const onlyChild = (_node: Node, parent?: Node | null) =>
-  [...parent?.childNodes ?? []].filter((n) => n.nodeType === ELEMENT_NODE)
-    .length === 1;
+}
 
-const createMatch = (selector: AST): Matcher => {
+const children = (parent?: Node | null, start?: number, end?: number) =>
+  [...parent?.childNodes ?? []].filter((n, i): n is Element =>
+    n.nodeType === ELEMENT_NODE && (start == null || i >= start) &&
+    (end == null || i < end)
+  );
+
+function lastChild(node: Node, parent?: Node | null): boolean {
+  return children(parent).pop() === node;
+}
+
+function firstChild(node: Node, parent?: Node | null): boolean {
+  return children(parent).shift() === node;
+}
+
+function onlyChild(_node: Node, parent?: Node | null): boolean {
+  return children(parent).length === 1;
+}
+
+function createMatch(selector: AST): Matcher {
   switch (selector.type) {
     case "type":
-      return (node: Node) => {
+      return (node) => {
         if (selector.content === "*") return true;
         return node.nodeName === selector.name;
       };
     case "class":
-      return (node: Node) =>
+      return (node) =>
         node.attributes?.getNamedItem("class")?.value.split(/\s+/g).includes(
           selector.name,
         ) ?? false;
     case "id":
-      return (node: Node) =>
+      return (node) =>
         node.attributes?.getNamedItem("id")?.value === selector.name;
     case "pseudo-class": {
       switch (selector.name) {
@@ -179,7 +237,7 @@ const createMatch = (selector: AST): Matcher => {
         case "nth-child":
           return (node, parent) => {
             const target = nthChildIndex(node, parent) + 1;
-            if (Number.isNaN(Number(selector.argument))) {
+            if (NumberIsNaN(Number(selector.argument))) {
               switch (selector.argument) {
                 case "odd":
                   return Math.abs(target % 2) == 1;
@@ -190,9 +248,7 @@ const createMatch = (selector: AST): Matcher => {
                     throw new Error(`Unsupported empty nth-child selector!`);
                   }
                   const nth = nthChild(selector.argument);
-                  const elements = [...parent?.childNodes ?? []].filter(
-                    (n: Node) => n.nodeType === ELEMENT_NODE,
-                  );
+                  const elements = children(parent);
                   const childIndex = nthChildIndex(node, parent) + 1;
                   for (let i = 0; i < elements.length; i++) {
                     const n = nth(i);
@@ -210,14 +266,14 @@ const createMatch = (selector: AST): Matcher => {
       }
     }
     case "attribute":
-      return (node: Node) => {
+      return (node) => {
         let { caseSensitive, name, value } = selector;
         if (!node.attributes) return false;
-        const attrs = Object.entries(node.attributes);
+        const attrs = ObjectEntries(node.attributes);
         for (const [attr, attrVal] of attrs) {
           if (caseSensitive === "i") {
-            value = name.toLowerCase();
-            attrVal.value = attr.toLowerCase();
+            value = StringPrototypeToLowerCase(name);
+            attrVal.value = StringPrototypeToLowerCase(attr);
           }
           if (attr !== name) continue;
           if (!value) return true;
@@ -225,29 +281,25 @@ const createMatch = (selector: AST): Matcher => {
             (value[0] === '"' || value[0] === "'") &&
             value[0] === value[value.length - 1]
           ) {
-            value = JSON.parse(value);
+            value = JSONParse(value);
           }
-          if (value) {
-            return getAttributeMatch(selector)(attrVal.value, value);
-          }
+          if (value) return getAttributeEqualer(selector)(attrVal.value, value);
         }
         return false;
       };
     case "universal":
-      return (_: Node) => {
-        return true;
-      };
+      return (_) => true;
     default: {
       throw new Error(`Unhandled selector: ${selector.type}`);
     }
   }
-};
+}
 
-const selectorToMatch = (sel: string | AST): Matcher => {
+function selectorToMatch(sel: string | AST): Matcher {
   const selector = typeof sel === "string" ? parse(sel) : sel;
   switch (selector?.type) {
     case "list": {
-      const matchers = selector.list.map((s: any) => createMatch(s));
+      const matchers = selector.list.map((s) => createMatch(s));
       return (node, parent, index) => {
         for (const match of matchers) {
           if (match(node, parent, index)) return true;
@@ -256,7 +308,7 @@ const selectorToMatch = (sel: string | AST): Matcher => {
       };
     }
     case "compound": {
-      const matchers = selector.list.map((s: any) => createMatch(s));
+      const matchers = selector.list.map((s) => createMatch(s));
       return (node, parent, index) => {
         for (const match of matchers) {
           if (!match(node, parent, index)) return false;
@@ -282,16 +334,14 @@ const selectorToMatch = (sel: string | AST): Matcher => {
             return parent ? leftMatches.has(parent) : false;
           case "~": {
             if (!parent) return false;
-            for (const sibling of [...parent.childNodes].slice(0, i)) {
+            for (const sibling of children(parent, 0, i)) {
               if (leftMatches.has(sibling)) return true;
             }
             return false;
           }
           case "+": {
             if (!parent) return false;
-            const prevSiblings = [...parent.childNodes]
-              .slice(0, i)
-              .filter((el: Node) => el.nodeType === ELEMENT_NODE);
+            const prevSiblings = children(parent, 0, i);
             if (prevSiblings.length === 0) return false;
             const prev = prevSiblings[prevSiblings.length - 1];
             if (!prev) return false;
@@ -305,4 +355,4 @@ const selectorToMatch = (sel: string | AST): Matcher => {
     default:
       return createMatch(selector!) as Matcher;
   }
-};
+}

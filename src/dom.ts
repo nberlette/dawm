@@ -804,35 +804,6 @@ export abstract class CharacterData extends Node {
     this.data = current.slice(0, offset) + data + current.slice(offset + count);
   }
 
-  splitText(offset: number): Text {
-    const current = this.data;
-    const head = current.slice(0, offset);
-    const tail = current.slice(offset);
-    this.data = head;
-    const newText = new Text(tail);
-    if (this.parentNode) {
-      this.parentNode.insertBefore(newText, this.nextSibling);
-    }
-    return newText;
-  }
-
-  get wholeText(): string {
-    // deno-lint-ignore no-this-alias
-    let start: Node | null = this;
-    while (
-      start?.previousSibling && start.previousSibling.nodeType === NodeType.Text
-    ) {
-      start = start.previousSibling;
-    }
-    let text = "";
-    let cursor: Node | null = start;
-    while (cursor && cursor.nodeType === NodeType.Text) {
-      text += cursor.nodeValue ?? "";
-      cursor = cursor.nextSibling;
-    }
-    return text;
-  }
-
   protected cloneShallow(): CharacterData {
     // deno-lint-ignore no-explicit-any
     return new (CharacterData as any)(this.nodeName, this.data);
@@ -863,6 +834,35 @@ export class Text extends CharacterData {
 
   get nodeType(): NodeType.Text {
     return NodeType.Text;
+  }
+
+  get wholeText(): string {
+    // deno-lint-ignore no-this-alias
+    let start: Node | null = this;
+    while (
+      start?.previousSibling && start.previousSibling.nodeType === NodeType.Text
+    ) {
+      start = start.previousSibling;
+    }
+    let text = "";
+    let cursor: Node | null = start;
+    while (cursor && cursor.nodeType === NodeType.Text) {
+      text += cursor.nodeValue ?? "";
+      cursor = cursor.nextSibling;
+    }
+    return text;
+  }
+
+  splitText(offset: number): Text {
+    const current = this.data;
+    const head = current.slice(0, offset);
+    const tail = current.slice(offset);
+    this.data = head;
+    const newText = new Text(tail);
+    if (this.parentNode) {
+      this.parentNode.insertBefore(newText, this.nextSibling);
+    }
+    return newText;
   }
 
   protected override cloneShallow(): Text {
@@ -1709,5 +1709,63 @@ export class GenericNode extends Node {
       }
     }
     return clone;
+  }
+}
+
+/**
+ * Represents a DOM Parser as defined by the DOM Standard.
+ *
+ * This class provides a single method, `parseFromString`, which allows parsing
+ * of strings containing markup in various formats (HTML, XML, SVG) into a new
+ * {@linkcode Document} instance.
+ *
+ * As a non-standard extension, this class also allows a custom options object
+ * to be passed to the class constructor. All subsequent calls to the method
+ * `parseFromString` will use the options set at construction time, which can
+ * be used to set a default `contentType`, control the compatibility/quirks
+ * mode of the HTML parser, and more. See the {@linkcode ParseOptions} docs for
+ * more details.
+ */
+export class DOMParser {
+  #options: ParseOptions | undefined;
+
+  constructor(options?: ParseOptions) {
+    this.#options = options;
+  }
+
+  parseFromString(html: string, contentType: "text/html"): Document;
+  parseFromString(svg: string, contentType: "image/svg+xml"): Document;
+  parseFromString(
+    xml: string,
+    contentType: "application/xml" | "text/xml" | "application/xhtml+xml",
+  ): Document;
+  parseFromString(str: string, contentType?: string): Document;
+  parseFromString(str: string, contentType: string): Document {
+    if (contentType === "text/html") {
+      return parseHTML(str, { ...this.#options, contentType });
+    } else if (
+      contentType === "image/svg+xml" ||
+      contentType === "application/xml" ||
+      contentType === "text/xml" ||
+      contentType === "application/xhtml+xml"
+    ) {
+      return parseXML(str, { ...this.#options, contentType });
+    } else if (!contentType) {
+      return parseHTML(str, { ...this.#options, contentType: "text/html" });
+    } else {
+      throw new TypeError(`Unsupported content type: ${contentType}`);
+    }
+  }
+}
+
+/**
+ * Represents a DOM XMLSerializer as defined by the DOM Standard.
+ *
+ * This class provides a single method, `serializeToString`, which allows
+ * serializing a {@linkcode Node} (and its subtree) into a string.
+ */
+export class XMLSerializer {
+  serializeToString(node: Node): string {
+    return serializeHTML(node);
   }
 }

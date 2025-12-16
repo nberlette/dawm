@@ -1,7 +1,9 @@
 import {
   isObject,
+  JSONStringify,
   ObjectHasOwn,
   StringPrototypeReplace,
+  StringPrototypeSlice,
   StringPrototypeToLowerCase,
   StringPrototypeTrim,
 } from "./_internal.ts";
@@ -78,9 +80,6 @@ export function serializeHTML<T extends AnyNode>(
           if (attributes) {
             out += serializeNamedNodeMap(attributes) || "";
           }
-          if (node.dataset) {
-            out += serializeDOMStringMap(node.dataset) || "";
-          }
           if (node.isSelfClosing) return `${out} />`;
           out += ">";
           if (node.childNodes.length > 0) {
@@ -95,7 +94,7 @@ export function serializeHTML<T extends AnyNode>(
         }
         case NodeType.Attribute:
           if (node.specified) {
-            return `${node.name}="${node.value}"`;
+            return serializeAttribute(node.name, node.value);
           } else {
             return "";
           }
@@ -172,7 +171,7 @@ export function serializeDOMStringMap(dataset: DOMStringMap): string {
       (_, $1, $2) => `${$1}-${$2}`,
     );
     p = StringPrototypeToLowerCase(StringPrototypeTrim(p));
-    out += ` data-${p}="${v}"`;
+    out += serializeAttribute(`data-${p}`, v, " ");
   }
   return out;
 }
@@ -204,7 +203,12 @@ export function serializeNamedNodeMap(attrs: NamedNodeMap): string {
     if ((!v && v !== "") || v === "false") continue;
     // normalize attribute names from camelCase to kebab-case, where needed.
     if (k.startsWith("aria")) {
-      k = k.replace(/^aria([A-Z]\w+)$/, "aria-$1").toLowerCase();
+      k = StringPrototypeReplace(
+        k,
+        /^aria([A-Z]\w+)$/,
+        (_, $1) => "aria-" + $1,
+      );
+      k = StringPrototypeToLowerCase(k);
     } else if (k === "className" || k === "classList" || k === "class") {
       k = "class"; // normalize className/class/classList attrs
     } else if (k === "htmlFor") {
@@ -230,7 +234,23 @@ export function serializeNamedNodeMap(attrs: NamedNodeMap): string {
         k = kebab;
       }
     }
-    out += ` ${k}="${v}"`;
+    out += serializeAttribute(k, v, " ");
   }
   return out;
+}
+
+function serializeAttribute(
+  name: string,
+  value: string | number | boolean | null | undefined,
+  prefix = "",
+): string {
+  if ((value ??= null) !== null) value = JSONStringify(value);
+  if (value === null || value === "false") return "";
+  if (value === name || value === "true" || value === "") {
+    return `${prefix}${name}`;
+  }
+  if (value[0] === '"' && value[value.length - 1] === '"') {
+    value = StringPrototypeSlice(value, 1, -1);
+  }
+  return `${prefix}${name}="${value}"`;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@nick/dawm",
-  "version": "0.1.0",
+  "version": "0.1.0-rc.2",
   "license": "MIT OR Apache-2.0",
   "author": {
     "name": "Nicholas Berlette",
@@ -9,35 +9,52 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./constants": "./src/constants.ts",
+    "./collections": "./src/collections.ts",
+    "./dom": "./src/dom.ts",
     "./guards": "./src/guards.ts",
+    "./options": "./src/options.ts",
     "./parse": "./src/parse.ts",
+    "./select": "./src/select.ts",
     "./serialize": "./src/serialize.ts",
+    "./tree": "./src/tree.ts",
     "./types": "./src/types.ts",
-    "./wasm": "./src/wasm/index.js",
-    "./wasm.js": "./src/wasm/index.js",
-    "./wasm.d.ts": "./src/wasm/index.d.ts"
+    "./wasm": "./src/wasm.ts",
+    "./wire": "./src/wire.ts"
   },
   "imports": {
     "@nick/atob": "jsr:@nick/atob@0.3.0",
-    "@nick/utf8": "jsr:@nick/utf80.4.0",
-    "parsel-js": "npm:parsel-js@1.2.2",
-    "debrotli": "npm:debrotli@0.1.0"
+    "@nick/utf8": "jsr:@nick/utf8@0.4.0",
+    "debrotli": "npm:debrotli@0.1.0",
+    "parsel-js": "npm:parsel-js@^1.2.2"
   },
   "tasks": {
-    "wasmbuild": {
-      "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build.ts",
-      "description": "Build the WebAssembly module using @deno/wasmbuild"
+    "bump": {
+      "command": "deno run -Aq ./scripts/bump_version.ts",
+      "description": "Bump versions in deno.json, package.json, and Cargo.toml"
     },
-    "wasmpack": {
-      "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build_wasmpack.ts",
+    "build:wasm": {
+      "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build.ts",
       "description": "Build the WebAssembly module using wasm-pack"
     },
-    "build": {
-      "command": "./scripts/esbuild.sh",
-      "description": "Build + bundle the @nick/dawm package",
+    "build:npm": {
+      "command": "./scripts/build_npm.ts",
+      "description": "Build the dawm package for npm",
       "dependencies": [
-        "wasmbuild"
+        "build:wasm"
+      ]
+    },
+    "build": {
+      "command": "npm pack ./npm/dist --pack-destination ./npm",
+      "description": "Build all distributables and package for release",
+      "dependencies": [
+        "build:npm"
+      ]
+    },
+    "release": {
+      "command": "V=${VERSION:-\"$(jq -r .version deno.json)\"} gh release create ${V} --title \"v${V}\" --generate-notes --latest ./npm/*.tgz",
+      "description": "Create a GitHub release for the current version",
+      "dependencies": [
+        "build"
       ]
     },
     "test": {
@@ -71,7 +88,9 @@
     },
     "publish": {
       "command": "deno publish --allow-dirty",
-      "dependencies": ["prepublish"]
+      "dependencies": [
+        "prepublish"
+      ]
     }
   },
   "publish": {
@@ -82,17 +101,32 @@
       "crates"
     ]
   },
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-explicit-any",
+        "no-import-prefix",
+        "ban-types"
+      ],
+      "include": [
+        "no-console",
+        "guard-for-in"
+      ],
+      "tags": [
+        "recommended"
+      ]
+    }
+  },
   "hooks": {
+    "post-checkout": [
+      "command -v cargo 2>/dev/null || curl -fsSL https://sh.rustup.rs | sh -s -- -y 2>/dev/null",
+      "command -v deno 2>/dev/null || curl -fsSL https://deno.land/install.sh | sh -",
+      "build:wasm"
+    ],
     "pre-commit": [
       "fmt:check",
       "lint",
-      "test"
-    ],
-    "pre-push": [
-      "build",
-      "test",
-      "bench"
-    ],
-    "prepare-commit-msg": "exec < /dev/tty && deno -Aq npm:git-cz --hook || true"
+      "build"
+    ]
   }
 }

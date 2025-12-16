@@ -111,15 +111,31 @@ export interface FragmentParseOptions extends ParseOptions {
   contextElement: string | null;
 }
 
+/**
+ * Normalized parse options with all defaults applied.
+ * @category Options
+ * @internal
+ */
 export interface NormalizedParseOptions
   extends Required<Omit<ParseOptions, "scriptingEnabled">> {
   quirksMode: QuirksMode;
 }
 
+/**
+ * Normalized fragment parse options with all defaults applied.
+ * @category Options
+ * @internal
+ */
 export interface NormalizedFragmentParseOptions extends NormalizedParseOptions {
   contextElement: string | null;
 }
 
+/**
+ * Normalizes various forms of parse options into a consistent structure with
+ * default values applied.
+ * @category Options
+ * @internal
+ */
 export function normalizeParseOptions(
   options?: string | ParseOptions | null,
 ): NormalizedParseOptions {
@@ -172,6 +188,12 @@ export function normalizeParseOptions(
   return normalized;
 }
 
+/**
+ * Normalizes fragment parse options, ensuring the context element is properly
+ * handled.
+ * @category Options
+ * @internal
+ */
 export function normalizeFragmentOptions(
   options?: FragmentParseOptions | string | null,
 ): NormalizedFragmentParseOptions {

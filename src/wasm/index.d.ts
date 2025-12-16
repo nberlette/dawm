@@ -1,56 +1,6 @@
-// @generated file from wasmbuild -- do not edit
-// deno-lint-ignore-file
-// deno-fmt-ignore-file
+/* tslint:disable */
+/* eslint-disable */
 
-/**
- * Parses a given input string as an XML-like document (XML, SVG, XHTML),
- * returning a serialized representation of the [`RcDom`] structure. The
- * node structure will require further processing to build a tree and resolve
- * string references.
- *
- * @see {@linkcode parse_html} for parsing HTML documents.
- * @see {@linkcode parse_frag} for parsing HTML fragments.
- */
-export function parse_xml(input: string, options: any): any;
-/**
- * Parses a given input string as either an HTML or XML-like document,
- * returning a serialized representation of the [`RcDom`] structure. The
- * `mime` parameter determines whether to parse as HTML or XML-like. The
- * optional `options` parameter allows customization of parsing behavior, such
- * as quirks mode, error handling, and content type, among others.
- *
- * Note that the returned structure is **flat**. To obtain a hierarchical tree
- * structure that reflects parent-child relationships within the DOM, the
- * returned data should first have all its numeric string indices resolved to
- * actual strings (via the `.strings` array), followed by its nodes being
- * resolved into a tree based on parent-child and sibling relationships.
- *
- * As with the strings, node hierarchies are represented using integer indices
- * that need to be resolved relative to the `.nodes` array.
- */
-export function parse_doc(
-  input: string,
-  mime: string,
-  options?: object | null,
-): any;
-/**
- * Parses a given input string as an HTML document, returning a serialized
- * representation of the [`RcDom`] structure. The node structure will require
- * further processing to build a tree and resolve string references.
- *
- * @see {@linkcode parse_frag} for parsing HTML fragments.
- * @see {@linkcode parse_xml} for parsing XML-like documents.
- */
-export function parse_html(input: string, options?: object | null): any;
-/**
- * Parses a given input string as an HTML fragment within the context of a
- * specified element, returning a serialized representation of the [`RcDom`]
- * structure. The node structure will require further processing to build a
- * tree and resolve string references.
- *
- * @see {@linkcode parse_html} for parsing full HTML documents.
- */
-export function parse_frag(input: string, options: any): any;
 export enum NodeType {
   Element = 1,
   Attribute = 2,
@@ -65,6 +15,7 @@ export enum NodeType {
   DocumentFragment = 11,
   Notation = 12,
 }
+
 /**
  * Represents the HTML quirks mode to use during parsing.
  *
@@ -86,3 +37,56 @@ export enum QuirksMode {
   LimitedQuirks = 1,
   NoQuirks = 2,
 }
+
+/**
+ * Parses a given input string as either an HTML or XML-like document,
+ * returning a serialized representation of the [`RcDom`] structure. The
+ * `mime` parameter determines whether to parse as HTML or XML-like. The
+ * optional `options` parameter allows customization of parsing behavior, such
+ * as quirks mode, error handling, and content type, among others.
+ *
+ * Note that the returned structure is **flat**. To obtain a hierarchical tree
+ * structure that reflects parent-child relationships within the DOM, the
+ * returned data should first have all its numeric string indices resolved to
+ * actual strings (via the `.strings` array), followed by its nodes being
+ * resolved into a tree based on parent-child and sibling relationships.
+ *
+ * As with the strings, node hierarchies are represented using integer indices
+ * that need to be resolved relative to the `.nodes` array.
+ */
+export function parse_doc(
+  input: string,
+  mime: string,
+  options?: object | null,
+): any;
+
+/**
+ * Parses a given input string as an HTML fragment within the context of a
+ * specified element, returning a serialized representation of the [`RcDom`]
+ * structure. The node structure will require further processing to build a
+ * tree and resolve string references.
+ *
+ * @see {@linkcode parse_html} for parsing full HTML documents.
+ */
+export function parse_frag(input: string, options: any): any;
+
+/**
+ * Parses a given input string as an HTML document, returning a serialized
+ * representation of the [`RcDom`] structure. The node structure will require
+ * further processing to build a tree and resolve string references.
+ *
+ * @see {@linkcode parse_frag} for parsing HTML fragments.
+ * @see {@linkcode parse_xml} for parsing XML-like documents.
+ */
+export function parse_html(input: string, options?: object | null): any;
+
+/**
+ * Parses a given input string as an XML-like document (XML, SVG, XHTML),
+ * returning a serialized representation of the [`RcDom`] structure. The
+ * node structure will require further processing to build a tree and resolve
+ * string references.
+ *
+ * @see {@linkcode parse_html} for parsing HTML documents.
+ * @see {@linkcode parse_frag} for parsing HTML fragments.
+ */
+export function parse_xml(input: string, options: any): any;

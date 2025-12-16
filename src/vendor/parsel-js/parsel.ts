@@ -77,15 +77,11 @@ export function tokenizeBy(text: string, grammar = TOKENS): Token[] {
   for (const [type, pattern] of Object.entries(grammar)) {
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
-      if (typeof token !== "string") {
-        continue;
-      }
+      if (typeof token !== "string") continue;
 
       pattern.lastIndex = 0;
       const match = pattern.exec(token);
-      if (!match) {
-        continue;
-      }
+      if (!match) continue;
 
       const from = match.index - 1;
       const args: typeof tokens = [];
@@ -255,11 +251,10 @@ function nestTokens(tokens: Token[], { list = true } = {}): AST {
   }
 
   for (let i = tokens.length - 1; i >= 0; i--) {
-    let token = tokens[i];
+    const token = tokens[i];
 
     if (token.type === "combinator") {
-      let left = tokens.slice(0, i);
-      let right = tokens.slice(i + 1);
+      const left = tokens.slice(0, i), right = tokens.slice(i + 1);
 
       if (left.length === 0) {
         return {
@@ -297,16 +292,12 @@ function nestTokens(tokens: Token[], { list = true } = {}): AST {
  */
 export function* flatten(
   node: AST,
-  /**
-   * @internal
-   */
+  /** @internal */
   parent?: AST,
 ): IterableIterator<[Token, AST | undefined]> {
   switch (node.type) {
     case "list":
-      for (let child of node.list) {
-        yield* flatten(child, node);
-      }
+      for (const child of node.list) yield* flatten(child, node);
       break;
     case "complex":
       yield* flatten(node.left, node);
@@ -329,14 +320,10 @@ export function* flatten(
 export function walk(
   node: AST | undefined,
   visit: (node: AST, parentNode?: AST) => void,
-  /**
-   * @internal
-   */
+  /** @internal */
   parent?: AST,
 ) {
-  if (!node) {
-    return;
-  }
+  if (!node) return;
   for (const [token, ast] of flatten(node, parent)) {
     visit(token, ast);
   }
@@ -351,45 +338,35 @@ export interface ParserOptions {
  * Parse a CSS selector
  *
  * @param selector - The selector to parse
- * @param options.recursive - Whether to parse the arguments of pseudo-classes like :is(), :has() etc. Defaults to true.
- * @param options.list - Whether this can be a selector list (A, B, C etc). Defaults to true.
+ * @param options.recursive - Whether to parse the arguments of pseudo-classes
+ * like :is(), :has() etc. Defaults to true.
+ * @param options.list - Whether this can be a selector list (A, B, C etc).
+ * Defaults to true.
  */
 export function parse(
   selector: string,
   { recursive = true, list = true }: ParserOptions = {},
 ): AST | undefined {
   const tokens = tokenize(selector);
-  if (!tokens) {
-    return;
-  }
+  if (!tokens) return;
 
   const ast = nestTokens(tokens, { list });
 
-  if (!recursive) {
-    return ast;
-  }
+  if (!recursive) return ast;
 
   for (const [token] of flatten(ast)) {
-    if (token.type !== "pseudo-class" || !token.argument) {
-      continue;
-    }
-    if (!RECURSIVE_PSEUDO_CLASSES.has(token.name)) {
-      continue;
-    }
+    if (token.type !== "pseudo-class" || !token.argument) continue;
+    if (!RECURSIVE_PSEUDO_CLASSES.has(token.name)) continue;
     let argument = token.argument;
     const childArg = RECURSIVE_PSEUDO_CLASSES_ARGS[token.name];
     if (childArg) {
       const match = childArg.exec(argument);
-      if (!match) {
-        continue;
-      }
+      if (!match) continue;
 
       Object.assign(token, match.groups);
       argument = match.groups!["subtree"];
     }
-    if (!argument) {
-      continue;
-    }
+    if (!argument) continue;
     Object.assign(token, {
       subtree: parse(argument, {
         recursive: true,
@@ -453,9 +430,7 @@ export function specificity(selector: string | AST): number[] {
   if (typeof ast === "string") {
     ast = parse(ast, { recursive: true });
   }
-  if (!ast) {
-    return [];
-  }
+  if (!ast) return [];
 
   if (ast.type === "list" && "list" in ast) {
     let base = 10;
@@ -485,22 +460,22 @@ export function specificity(selector: string | AST): number[] {
       case "pseudo-class":
         if (token.name === "where") {
           break;
-        }
-        if (
+        } else if (
           !RECURSIVE_PSEUDO_CLASSES.has(token.name) ||
           !token.subtree
         ) {
           ret[1]++;
           break;
-        }
-        const sub = specificity(token.subtree);
-        sub.forEach((s, i) => (ret[i] += s));
-        // :nth-child() & :nth-last-child() add (0, 1, 0) to the specificity of their most complex selector
-        if (
-          token.name === "nth-child" ||
-          token.name === "nth-last-child"
-        ) {
-          ret[1]++;
+        } else {
+          const sub = specificity(token.subtree);
+          sub.forEach((s, i) => (ret[i] += s));
+          // :nth-child() & :nth-last-child() add (0, 1, 0) to the specificity of their most complex selector
+          if (
+            token.name === "nth-child" ||
+            token.name === "nth-last-child"
+          ) {
+            ret[1]++;
+          }
         }
     }
   }
