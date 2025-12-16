@@ -95,10 +95,19 @@
   },
   "publish": {
     "include": [
-      "src/.*",
-      "./**/*.bench.*",
+      "src/**/*",
+      "LICENSE",
+      "README.md",
+      "vendor",
+      "examples"
+    ],
+    "exclude": [
       "scripts",
-      "crates"
+      "crates",
+      "target",
+      "npm",
+      "**/.*",
+      "**/*.{test,bench}.*"
     ]
   },
   "lint": {
@@ -115,7 +124,8 @@
       "tags": [
         "recommended"
       ]
-    }
+    },
+    "exclude": ["**/*.js", "npm", "src/wasm", "scripts"]
   },
   "hooks": {
     "post-checkout": [
@@ -125,7 +135,12 @@
     ],
     "pre-commit": [
       "fmt:check",
+      "lint"
+    ],
+    "pre-push": [
+      "fmt:check",
       "lint",
+      "test",
       "build"
     ]
   }
