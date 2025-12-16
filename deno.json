@@ -28,10 +28,6 @@
     "parsel-js": "npm:parsel-js@^1.2.2"
   },
   "tasks": {
-    "bump": {
-      "command": "deno run -Aq ./scripts/bump_version.ts",
-      "description": "Bump versions in deno.json, package.json, and Cargo.toml"
-    },
     "build:wasm": {
       "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build.ts",
       "description": "Build the WebAssembly module using wasm-pack"
@@ -77,7 +73,7 @@
       "command": "deno lint",
       "description": "Lint the codebase for problems"
     },
-    "prepublish": {
+    "prepublish:jsr": {
       "command": "deno publish --dry-run --allow-dirty",
       "dependencies": [
         "build",
@@ -86,11 +82,39 @@
         "test"
       ]
     },
-    "publish": {
+    "publish:jsr": {
       "command": "deno publish --allow-dirty",
       "dependencies": [
         "prepublish"
       ]
+    },
+    "prepublish:npm": {
+      "command": "npm publish --dry-run --access public ./npm/dist",
+      "dependencies": [
+        "build"
+      ]
+    },
+    "publish:npm": {
+      "command": "npm publish --access public ./npm/dist",
+      "dependencies": [
+        "prepublish:npm"
+      ]
+    },
+    "bump": {
+      "command": "deno run -Aq ./scripts/bump_version.ts",
+      "description": "Bump versions in deno.json, package.json, and Cargo.toml"
+    },
+    "bump-and-commit": {
+      "command": "deno task bump && git commit -am \"chore: bump version\"",
+      "description": "Bump version and create a git commit"
+    },
+    "release-and-publish": {
+      "command": "deno task release && deno task publish:jsr && deno task publish:npm",
+      "description": "Create a GitHub Release and Publish to JSR + NPM"
+    },
+    "burp": {
+      "command": "deno task bump-and-commit && deno task release-and-publish",
+      "description": "BUmp, create a Release, and Publish to JSR + NPM. Burp!"
     }
   },
   "publish": {
