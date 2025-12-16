@@ -3,7 +3,6 @@
 import { $ } from "jsr:@david/dax@0.44.1";
 import * as dnt from "jsr:@deno/dnt@0.42.3";
 import denoJson from "../deno.json" with { type: "json" };
-import pkg from "../npm/package.json" with { type: "json" };
 import process from "node:process";
 
 const NPM_DIR = $.path("./npm").resolve();
@@ -26,34 +25,49 @@ await dnt.build({
         ext,
       ) => ({
         kind: "export",
-        name: `./${name}${ext}`,
+        name: `${name}${ext}`,
         path: `./src/${name}.ts`,
       } as const));
     }),
   ],
   outDir,
-  shims: {
-    deno: true,
-  },
+  shims: {},
   package: {
-    ...pkg,
-    license: "MIT",
+    name: "dawm",
+    license: denoJson.license,
     version: denoJson.version,
     author: denoJson.author,
     main: "./cjs/index.js",
     module: "./esm/index.js",
     types: "./esm/index.d.ts",
+    readme: "README.md",
     homepage: "https://github.com/nberlette/dawm#readme",
     repository: "https://github.com/nberlette/dawm",
     bugs: "https://github.com/nberlette/dawm/issues",
+    keywords: [
+      "dom",
+      "wasm",
+      "living-dom",
+      "web-scraping",
+      "data-extraction",
+      "headless",
+      "server-side",
+      "dom-manipulation",
+      "dom-parser",
+      "tree-walking",
+      "serialization",
+      "selectors",
+      "query-selector-all",
+      "xml-parser",
+      "html-parser",
+      "virtual-dom",
+      "rust",
+    ],
+    description:
+      "High-performance headless DOM toolkit with an HTML/XML parser written in Rust, and DOM APIs implemented in TypeScript. Purpose-built for server-side workflows like web scraping and static site generation.",
     publishConfig: {
-      ...pkg.publishConfig,
       access: "public",
-      tag: denoJson.version.includes("-rc")
-        ? "rc"
-        : denoJson.version.includes("-")
-        ? "next"
-        : "latest",
+      tag: process.env.NPM_PUBLISH_TAG || "latest",
       registry: process.env.NPM_REGISTRY_URL || "https://registry.npmjs.org/",
     },
   },
@@ -63,7 +77,13 @@ await dnt.build({
   test: false,
   typeCheck: false,
   async postBuild() {
-    const cjsDir = OUT_DIR.join("cjs"), _esmDir = OUT_DIR.join("esm");
+    const cjsDir = OUT_DIR.join("cjs");
+    const cjsWasmDir = cjsDir.join("wasm");
+    const cjsWasm = cjsWasmDir.join("index.js");
+    const esmDir = OUT_DIR.join("esm");
+    const esmWasmDir = esmDir.join("wasm");
+    const esmWasm = esmWasmDir.join("index.js");
+
     await SRC_DIR.parentOrThrow().join("LICENSE").copyToDir(OUT_DIR, {
       overwrite: true,
     });
@@ -110,7 +130,7 @@ await dnt.build({
         }
       } else {
         const result =
-          await $`deno run -Aq npm:esbuild --bundle ${globalSrc} --outfile=${outputPath} --format=iife --minify --platform=browser --keep-names --external=debrotli`
+          await $`deno bundle -q ${globalSrc} --output=${outputPath} --format=iife --minify --platform=browser --external=debrotli --packages=bundle --vendor`
             .printCommand(true);
         if (result.code !== 0) {
           console.error("Failed to create UMD bundle!");

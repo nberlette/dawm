@@ -48,7 +48,7 @@ async function build(...args: string[]) {
   }
 
   if (!await $.commandExists("wasm-bindgen")) {
-    await $`cargo install -f wasm-bindgen-cli@$}`;
+    await $`cargo install -f wasm-bindgen-cli`.printCommand(true);
   }
 
   const wasmpack = async (env: Record<string, string> = {}) =>
@@ -233,7 +233,8 @@ async function inline_wasm(...args: string[]) {
   // write modified glue code with inlined wasm
   await dest.writeText(loader);
   // format things
-  await $`deno fmt -q --no-config ${dest.dirname()}`.quiet().code();
+  // await $`deno fmt -q --no-config ${dest.dirname()}`.quiet().code();
+  await $`deno bundle --external=debrotli --packages=bundle --vendor --output=${dest} ${dest}`;
 
   const final_size = final_wasm.byteLength;
   log(`-> final wasm size: ${pretty_bytes(final_size)}`, 36);
