@@ -10,3 +10,5 @@ dist
 build
 lib
 /vendor
+*.tgz
+*.tar.gz
