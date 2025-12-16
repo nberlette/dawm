@@ -1,3 +1,5 @@
+// deno-lint-ignore-file no-console
+
 import { Document, type ParseOptions, serializeHTML } from "@nick/dawm";
 import assert from "node:assert";
 
