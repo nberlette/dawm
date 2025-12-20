@@ -33,9 +33,9 @@ await dnt.build({
   outDir,
   shims: {},
   package: {
-    name: "dawm",
+    name: process.env.PACKAGE_NAME || "dawm",
     license: denoJson.license,
-    version: denoJson.version,
+    version: process.env.PACKAGE_VERSION || denoJson.version,
     author: denoJson.author,
     main: "./cjs/index.js",
     module: "./esm/index.js",
@@ -67,7 +67,7 @@ await dnt.build({
       "High-performance headless DOM toolkit with an HTML/XML parser written in Rust, and DOM APIs implemented in TypeScript. Purpose-built for server-side workflows like web scraping and static site generation.",
     publishConfig: {
       access: "public",
-      tag: process.env.NPM_PUBLISH_TAG || "latest",
+      tag: process.env.NPM_DIST_TAG || "latest",
       registry: process.env.NPM_REGISTRY_URL || "https://registry.npmjs.org/",
     },
   },
@@ -78,11 +78,11 @@ await dnt.build({
   typeCheck: false,
   async postBuild() {
     const cjsDir = OUT_DIR.join("cjs");
-    const cjsWasmDir = cjsDir.join("wasm");
-    const cjsWasm = cjsWasmDir.join("index.js");
-    const esmDir = OUT_DIR.join("esm");
-    const esmWasmDir = esmDir.join("wasm");
-    const esmWasm = esmWasmDir.join("index.js");
+    // const cjsWasmDir = cjsDir.join("wasm");
+    // const cjsWasm = cjsWasmDir.join("index.js");
+    // const esmDir = OUT_DIR.join("esm");
+    // const esmWasmDir = esmDir.join("wasm");
+    // const esmWasm = esmWasmDir.join("index.js");
 
     await SRC_DIR.parentOrThrow().join("LICENSE").copyToDir(OUT_DIR, {
       overwrite: true,
