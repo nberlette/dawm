@@ -54,11 +54,7 @@ export enum QuirksMode {
  * As with the strings, node hierarchies are represented using integer indices
  * that need to be resolved relative to the `.nodes` array.
  */
-export function parse_doc(
-  input: string,
-  mime: string,
-  options?: object | null,
-): any;
+export function parse_doc(input: string, mime: string, options?: object | null): any;
 
 /**
  * Parses a given input string as an HTML fragment within the context of a
