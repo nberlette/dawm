@@ -25,6 +25,7 @@
     "debrotli": "npm:debrotli@0.1.0"
   },
   "tasks": {
+    "build:check": "deno run -Aq ./scripts/check_build.ts",
     "build:wasm": {
       "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build.ts",
       "description": "Build the WebAssembly module using wasm-pack"
