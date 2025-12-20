@@ -1,5 +1,5 @@
 {
-  "name": "@nick/dawm",
+  "name": "dawm",
   "version": "0.1.0-rc.2",
   "license": "MIT OR Apache-2.0",
   "author": {
@@ -22,16 +22,10 @@
     "./wire": "./src/wire.ts"
   },
   "imports": {
-    "@nick/atob": "jsr:@nick/atob@0.3.0",
-    "@nick/utf8": "jsr:@nick/utf8@0.4.0",
-    "debrotli": "npm:debrotli@0.1.0",
-    "parsel-js": "npm:parsel-js@^1.2.2"
+    "debrotli": "npm:debrotli@0.1.0"
   },
   "tasks": {
-    "bump": {
-      "command": "deno run -Aq ./scripts/bump_version.ts",
-      "description": "Bump versions in deno.json, package.json, and Cargo.toml"
-    },
+    "build:check": "deno run -Aq ./scripts/check_build.ts",
     "build:wasm": {
       "command": "WASM_OPT_LEVEL=4 WASM_OPT_BULK_MEMORY=1 WASM_OPT_EXTRA_ARGS=\"--all-features\" deno -Aq ./scripts/build.ts",
       "description": "Build the WebAssembly module using wasm-pack"
@@ -44,61 +38,125 @@
       ]
     },
     "build": {
-      "command": "npm pack ./npm/dist --pack-destination ./npm",
+      "command": "npm pack ./npm/dist --pack-destination ./npm/dist",
       "description": "Build all distributables and package for release",
       "dependencies": [
         "build:npm"
       ]
     },
-    "release": {
-      "command": "V=${VERSION:-\"$(jq -r .version deno.json)\"} gh release create ${V} --title \"v${V}\" --generate-notes --latest ./npm/*.tgz",
-      "description": "Create a GitHub release for the current version",
+    "release:base": {
+      "command": "V=${VERSION:-\"$(jq -r .version deno.json)\"} gh release create ${V} -t \"v${V}\" --generate-notes --latest",
       "dependencies": [
         "build"
       ]
     },
+    "release": {
+      "command": "deno task release:base ./npm/*.tgz",
+      "description": "Create a GitHub release for the current version"
+    },
+    "release:draft": {
+      "command": "deno task release:base --draft ./npm/*.tgz",
+      "description": "Create a draft GitHub release for the current version"
+    },
+    "release:dry": {
+      "command": "deno task release:base --draft --dry-run ./npm/*.tgz",
+      "description": "Create a dry-run draft GitHub release for the current version"
+    },
     "test": {
       "command": "deno test -Aq --no-check=remote --parallel --doc --coverage=.coverage --coverage-raw-data-only",
-      "description": "Run the test suite"
+      "description": "Run the test suite",
+      "dependencies": [
+        "build:check"
+      ]
     },
     "bench": {
       "command": "deno bench -Aq --no-check=remote",
-      "description": "Run the benchmark suite"
+      "dependencies": [
+        "build:check"
+      ]
     },
-    "fmt:check": {
-      "command": "deno fmt --check",
-      "description": "Check code formatting with deno fmt"
-    },
-    "fmt": {
-      "command": "deno fmt",
-      "description": "Format the codebase with deno fmt"
-    },
-    "lint": {
-      "command": "deno lint",
-      "description": "Lint the codebase for problems"
-    },
-    "prepublish": {
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "lint": "deno lint",
+    "lint:fix": "deno lint --fix",
+    "prepublish:jsr": {
       "command": "deno publish --dry-run --allow-dirty",
       "dependencies": [
-        "build",
+        "build:wasm",
         "fmt:check",
         "lint",
         "test"
       ]
     },
-    "publish": {
+    "publish:jsr": {
       "command": "deno publish --allow-dirty",
       "dependencies": [
-        "prepublish"
+        "prepublish:jsr"
       ]
+    },
+    "prepublish:npm": {
+      "command": "npm publish --dry-run --access public ./npm/dist",
+      "dependencies": [
+        "build"
+      ]
+    },
+    "publish:npm": {
+      "command": "npm publish --access public ./npm/dist",
+      "dependencies": [
+        "prepublish:npm"
+      ]
+    },
+    "prepublish": {
+      "dependencies": [
+        "prepublish:npm",
+        "prepublish:jsr"
+      ]
+    },
+    "publish": {
+      "dependencies": [
+        "publish:npm",
+        "publish:jsr"
+      ]
+    },
+    "bump": {
+      "command": "deno run -Aq ./scripts/bump_version.ts",
+      "description": "Bump versions in deno.json/package.json/Cargo.toml"
+    },
+    "bumpush": {
+      "command": "deno task bump && git commit -am \"chore: bump version\" && git push origin",
+      "description": "Bump version, commit changes, push to origin"
+    },
+    "relish": {
+      "dependencies": [
+        "release",
+        "publish:npm",
+        "publish:jsr"
+      ],
+      "description": "Create a GitHub Release and Publish to JSR + NPM"
+    },
+    "burp": {
+      "dependencies": [
+        "bumpush",
+        "relish"
+      ],
+      "description": "BUmp, Release, and Publish to JSR and NPM. Burp!"
     }
   },
   "publish": {
     "include": [
-      "src/.*",
-      "./**/*.bench.*",
+      "src/**/*",
+      "LICENSE",
+      "README.md",
+      "vendor",
+      "examples"
+    ],
+    "exclude": [
       "scripts",
-      "crates"
+      "crates",
+      "target",
+      "npm",
+      "**/.*",
+      "**/*.{test,bench}.*"
     ]
   },
   "lint": {
@@ -117,16 +175,24 @@
       ]
     }
   },
+  "exclude": [
+    "**/*.js",
+    "npm",
+    "src/wasm",
+    "scripts"
+  ],
   "hooks": {
     "post-checkout": [
-      "command -v cargo 2>/dev/null || curl -fsSL https://sh.rustup.rs | sh -s -- -y 2>/dev/null",
-      "command -v deno 2>/dev/null || curl -fsSL https://deno.land/install.sh | sh -",
+      "command -v cargo &>/dev/null || curl -fsSL https://sh.rustup.rs | sh -s -- -y",
+      "command -v deno &>/dev/null || curl -fsSL https://deno.land/install.sh | sh -",
       "build:wasm"
     ],
     "pre-commit": [
       "fmt:check",
-      "lint",
-      "build"
+      "lint"
     ]
-  }
+  },
+  "lock": true,
+  "nodeModulesDir": "auto",
+  "allowScripts": true
 }

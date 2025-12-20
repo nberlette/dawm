@@ -7,8 +7,8 @@
     "jsr:@david/path@0.2": "0.2.0",
     "jsr:@david/which@~0.4.1": "0.4.1",
     "jsr:@deno/dnt@0.42.3": "0.42.3",
-    "jsr:@nick/atob@0.3.0": "0.3.0",
-    "jsr:@nick/utf8@0.4.0": "0.4.0",
+    "jsr:@nick/atob@*": "0.3.0",
+    "jsr:@nick/utf8@*": "0.4.0",
     "jsr:@std/bytes@^1.0.5": "1.0.6",
     "jsr:@std/fmt@1": "1.0.8",
     "jsr:@std/fs@1": "1.0.20",
@@ -21,7 +21,6 @@
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
     "jsr:@ts-morph/common@0.27": "0.27.0",
     "npm:debrotli@0.1.0": "0.1.0",
-    "npm:parsel-js@^1.2.2": "1.2.2",
     "npm:wasm-pack@0.13.1": "0.13.1"
   },
   "jsr": {
@@ -216,9 +215,6 @@
         "wrappy"
       ]
     },
-    "parsel-js@1.2.2": {
-      "integrity": "sha512-AVJMlwQ4bL2Y0VvYJGk+Fp7eX4SCH2uFoNApmn4yKWACUewZ+alwW3tyoe1r5Z3aLYQTuAuPZIyGghMfO/Tlxw=="
-    },
     "path-is-absolute@1.0.1": {
       "integrity": "sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg=="
     },
@@ -258,10 +254,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@nick/atob@0.3.0",
-      "jsr:@nick/utf8@0.4.0",
-      "npm:debrotli@0.1.0",
-      "npm:parsel-js@^1.2.2"
+      "npm:debrotli@0.1.0"
     ]
   }
 }

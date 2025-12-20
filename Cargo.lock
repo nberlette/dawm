@@ -10,9 +10,9 @@ checksum = "812e12b5285cc515a9c72a5c1d3b6d46a19dac5acfef5265968c166106e31dd3"
 
 [[package]]
 name = "bumpalo"
-version = "3.19.0"
+version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
+checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
 
 [[package]]
 name = "cfg-if"
@@ -145,9 +145,9 @@ dependencies = [
 
 [[package]]
 name = "moos"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "352be24acc3195d5ca0673318d0ae8320f9e51b4d3093eb1deffc72d5300c3d9"
+checksum = "47bd4e1d92dfd2373ce117427affe46e8e713d76aaaafa7308216598f950f9bf"
 dependencies = [
  "derive_more",
  "serde",

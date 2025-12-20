@@ -122,15 +122,21 @@ async function inline_wasm(...args: string[]) {
   const glue = $.path(outDir).join(name + ".js");
   const glue_dts = glue.withExtname(".d.ts");
 
+  const dest = glue.withBasename("index.js");
+  const dest_dts = glue_dts.withBasename("index.d.ts");
+
+  const wasm = $.path(outDir).join(name + "_bg.wasm");
+  const wasm_src = await wasm.readBytes();
+
   let glue_src = await glue.readText();
   let glue_dts_src = await glue_dts.readText();
 
   // get rid of eslint/tslint disable comments in the glue code file
-  glue_src = glue_src.replace(/\/\*\s*[et]slint[-\s\w:]+?\s*\*\/\n/g, "");
+  glue_src = glue_src.replace(/\/\*\s*[et]slint[-\s\w:]+\*\/\n/g, "");
 
   // if there isn't a `let wasm;` at the beginning of the file, add it.
   if (glue_src.indexOf("let wasm;") === -1) {
-    glue_src = `let wasm;\n` + glue_src;
+    glue_src = `let wasm;\n${glue_src}`;
   }
   // if there are references to `TextEncoder`, `TextDecoder`, add a side-effect
   // import from `@nick/utf8/shim` to ensure they're always available.
@@ -138,26 +144,24 @@ async function inline_wasm(...args: string[]) {
     glue_src.includes("TextEncoder") ||
     glue_src.includes("TextDecoder")
   ) {
-    glue_src = `import "@nick/utf8/shim";\n` + glue_src;
+    glue_src = `import "jsr:@nick/utf8/shim";\n${glue_src}`;
   }
   // we WILL be using atob() to decode base64 strings, so we add a side-effect
   // import from `@nick/atob/shim` to ensure it's always available.
-  glue_src = `import "@nick/atob/shim";\n` + glue_src;
+  glue_src = `import "jsr:@nick/atob/shim";\n${glue_src}`;
   glue_dts_src = $.dedent`
     // deno-lint-ignore-file
     // deno-coverage-ignore-file
     // @ts-nocheck -- generated file
-    ${glue_dts_src.replace(/\/\*\s*[et]slint[-\s\w:]+?\s*\*\/\n/g, "")}
+    ${glue_dts_src.replace(/\/\*\s*[et]slint[-\s\w:]+\*\/\s*\n/g, "")}
   `;
 
-  const wasm = $.path(outDir).join(name + "_bg.wasm");
-  const wasm_src = await wasm.readBytes();
   let final_wasm = wasm_src;
   let byte_str = "bytes";
   if (process.env.BROTLI !== "0" && !args.includes("--no-brotli")) {
     byte_str = `decompress(${byte_str})`;
     // add import from debrotli module for decompression
-    glue_src = `import { decompress } from "debrotli";\n` + glue_src;
+    glue_src = `import { decompress } from "debrotli";\n${glue_src}`;
     // compress wasm using brotli
     final_wasm = brotliCompressSync(wasm_src, {
       params: {
@@ -186,13 +190,6 @@ async function inline_wasm(...args: string[]) {
   const before = glue_src.slice(0, startIdx);
   const after = glue_src.slice(endIdx);
   loader = $.dedent`
-    /// <reference types="./index.d.ts" />
-    // deno-fmt-ignore-file
-    // deno-lint-ignore-file
-    // deno-coverage-ignore-file
-    // @ts-nocheck -- generated file
-    // @ts-self-types="./index.d.ts"
-
     ${before}
     const bytes = ${loader};
     const wasmModule = new WebAssembly.Module(bytes);
@@ -222,9 +219,7 @@ async function inline_wasm(...args: string[]) {
   await wasm.withBasename(".gitignore").ensureRemove();
   const wasm_dts = wasm.withExtname(".wasm.d.ts");
   await wasm_dts.ensureRemove();
-
-  const dest = glue.withBasename("index.js");
-  const dest_dts = glue_dts.withBasename("index.d.ts");
+  await wasm.ensureRemove();
 
   // rename dawm.js -> index.js
   await glue.rename(dest);
@@ -234,7 +229,26 @@ async function inline_wasm(...args: string[]) {
   await dest.writeText(loader);
   // format things
   // await $`deno fmt -q --no-config ${dest.dirname()}`.quiet().code();
-  await $`deno bundle --external=debrotli --packages=bundle --vendor --output=${dest} ${dest}`;
+  await $`deno bundle -q --minify --external=debrotli --packages=bundle --vendor --output=${dest} --platform=browser --format=esm ${dest}`;
+
+  const bundled = await dest.readText();
+
+  await dest.writeText($.dedent`
+    /*!
+     * Copyright 2025 Nicholas Berlette. All rights reserved. MIT license.
+     * @see https://nick.mit-license.org/2025 for the full license text.
+     * @see https://github.com/nberlette/dawm for the original source.
+     */
+    /// <reference types="./${dest_dts.basename()}" />
+    // deno-fmt-ignore-file
+    // deno-lint-ignore-file
+    // deno-coverage-ignore-file
+    // @ts-nocheck -- generated file
+    // @ts-self-types="./${dest_dts.basename()}"
+    // deno-coverage-ignore-start
+    ${bundled}
+    // deno-coverage-ignore-stop
+  `);
 
   const final_size = final_wasm.byteLength;
   log(`-> final wasm size: ${pretty_bytes(final_size)}`, 36);

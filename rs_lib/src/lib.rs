@@ -1,7 +1,3 @@
-#![feature(const_convert)]
-#![feature(const_index)]
-#![feature(const_trait_impl)]
-
 extern crate alloc;
 extern crate core;
 
@@ -154,24 +150,24 @@ pub fn parse_frag(input: &str, options: JsValue) -> JsValue {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct ParseOptions {
-  pub exact_errors:      bool,
+  pub exact_errors: bool,
   #[serde(rename = "allowScripts")]
   pub scripting_enabled: bool,
-  pub iframe_srcdoc:     bool,
-  pub drop_doctype:      bool,
-  pub quirks_mode:       QuirksMode,
-  pub content_type:      Option<String>,
+  pub iframe_srcdoc: bool,
+  pub drop_doctype: bool,
+  pub quirks_mode: QuirksMode,
+  pub content_type: Option<String>,
 }
 
 impl Default for ParseOptions {
   fn default() -> Self {
     Self {
-      exact_errors:      true,
+      exact_errors: true,
       scripting_enabled: true,
-      iframe_srcdoc:     false,
-      drop_doctype:      false,
-      quirks_mode:       default_quirks_mode().parse().unwrap_or_default(),
-      content_type:      Some(default_mime_type()),
+      iframe_srcdoc: false,
+      drop_doctype: false,
+      quirks_mode: default_quirks_mode().parse().unwrap_or_default(),
+      content_type: Some(default_mime_type()),
     }
   }
 }
@@ -181,14 +177,14 @@ impl Default for ParseOptions {
 #[serde(default, rename_all = "camelCase")]
 pub struct FragmentParseOptions {
   #[serde(flatten)]
-  pub base:            ParseOptions,
+  pub base: ParseOptions,
   pub context_element: String,
 }
 
 impl Default for FragmentParseOptions {
   fn default() -> Self {
     Self {
-      base:            ParseOptions {
+      base: ParseOptions {
         drop_doctype: true, // Different default for fragments
         iframe_srcdoc: false,
         ..Default::default()
@@ -296,26 +292,24 @@ fn collect(
 
       let mut attributes = Vec::new();
       attributes.push(WireAttr {
-        ns:    None,
-        name:  interner.intern("name"),
+        ns: None,
+        name: interner.intern("name"),
         value: interner.intern(name),
       });
 
       if !public_id.is_empty() {
-        val.push(' ');
-        val.push_str(&format!(r#"PUBLIC "{public_id}"#));
+        val.push_str(&format!(r#"PUBLIC "{public_id}" "#));
         attributes.push(WireAttr {
-          ns:    None,
-          name:  interner.intern("publicId"),
+          ns: None,
+          name: interner.intern("publicId"),
           value: interner.intern(public_id),
         });
       }
       if !system_id.is_empty() {
-        val.push(' ');
-        val.push_str(&format!(r#"SYSTEM "{system_id}"#));
+        val.push_str(&format!(r#"SYSTEM "{system_id}""#));
         attributes.push(WireAttr {
-          ns:    None,
-          name:  interner.intern("systemId"),
+          ns: None,
+          name: interner.intern("systemId"),
           value: interner.intern(system_id),
         });
       }
@@ -436,7 +430,6 @@ pub fn parse_html_fragment(
   options: &FragmentParseOptions,
 ) -> RcDom {
   let sink = RcDom::default();
-  // Convert our options to TreeBuilderOpts
   let tree_builder: TreeBuilderOpts = options.base.clone().into();
   let tokenizer = TokenizerOpts {
     exact_errors: options.base.exact_errors,
@@ -460,20 +453,15 @@ pub fn parse_html_fragment(
 
 pub fn parse_html_document(input: &str, options: &ParseOptions) -> RcDom {
   let sink = RcDom::default();
-
-  // Convert our options to TreeBuilderOpts
   let tree_builder: TreeBuilderOpts = options.clone().into();
-
   let tokenizer = TokenizerOpts {
     exact_errors: options.exact_errors,
     ..Default::default()
   };
-
   let opts = ParseOpts {
     tree_builder,
     tokenizer,
   };
-
   html5ever::parse_document(sink, opts)
     .from_utf8()
     .read_from(&mut input.as_bytes())
