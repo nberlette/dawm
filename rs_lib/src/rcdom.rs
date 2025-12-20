@@ -49,6 +49,7 @@ use core::fmt;
 use core::mem;
 
 use derive_more::with_trait::Debug;
+use derive_more::with_trait::From;
 use derive_more::with_trait::*;
 use html5ever::Attribute;
 use html5ever::QualName;
