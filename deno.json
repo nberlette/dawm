@@ -191,5 +191,8 @@
       "fmt:check",
       "lint"
     ]
-  }
+  },
+  "lock": true,
+  "nodeModulesDir": "auto",
+  "allowScripts": true
 }
