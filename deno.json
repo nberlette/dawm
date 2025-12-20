@@ -38,18 +38,29 @@
       ]
     },
     "build": {
-      "command": "npm pack ./npm/dist --pack-destination ./npm",
+      "command": "npm pack ./npm/dist --pack-destination ./npm/dist",
       "description": "Build all distributables and package for release",
       "dependencies": [
         "build:npm"
       ]
     },
-    "release": {
-      "command": "V=${VERSION:-\"$(jq -r .version deno.json)\"} gh release create ${V} --title \"v${V}\" --generate-notes --latest ./npm/*.tgz",
-      "description": "Create a GitHub release for the current version",
+    "release:base": {
+      "command": "V=${VERSION:-\"$(jq -r .version deno.json)\"} gh release create ${V} -t \"v${V}\" --generate-notes --latest",
       "dependencies": [
         "build"
       ]
+    },
+    "release": {
+      "command": "deno task release:base ./npm/*.tgz",
+      "description": "Create a GitHub release for the current version"
+    },
+    "release:draft": {
+      "command": "deno task release:base --draft ./npm/*.tgz",
+      "description": "Create a draft GitHub release for the current version"
+    },
+    "release:dry": {
+      "command": "deno task release:base --draft --dry-run ./npm/*.tgz",
+      "description": "Create a dry-run draft GitHub release for the current version"
     },
     "test": {
       "command": "deno test -Aq --no-check=remote --parallel --doc --coverage=.coverage --coverage-raw-data-only",
