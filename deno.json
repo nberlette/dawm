@@ -22,10 +22,7 @@
     "./wire": "./src/wire.ts"
   },
   "imports": {
-    "@nick/atob": "jsr:@nick/atob@0.3.0",
-    "@nick/utf8": "jsr:@nick/utf8@0.4.0",
-    "debrotli": "npm:debrotli@0.1.0",
-    "parsel-js": "npm:parsel-js@^1.2.2"
+    "debrotli": "npm:debrotli@0.1.0"
   },
   "tasks": {
     "build:wasm": {
