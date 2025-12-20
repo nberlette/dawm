@@ -12,3 +12,4 @@ lib
 /vendor
 *.tgz
 *.tar.gz
+src/wasm/*.wasm
