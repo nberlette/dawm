@@ -1047,10 +1047,11 @@ export class DOMTokenList {
 
   replace(oldToken: string, newToken: string): boolean {
     const tokens = this.#updateTokens();
-    const index = tokens.indexOf(oldToken);
+    const index = indexOf(tokens, oldToken);
     if (index === -1) return false;
     tokens[index] = newToken;
-    this.#updateAttribute();
+    this.#tokens = tokens.filter((t, i, a) => indexOf(a, t) === i);
+    this.#updateAttribute(this.#tokens.join(" "));
     return true;
   }
 
@@ -1282,7 +1283,7 @@ export class NamedNodeMap {
 
   namedItem(name: string): Attr | null {
     for (const attr of this) {
-      if (attr.name === name) return attr;
+      if (attr.name.toLowerCase() === name.toLowerCase()) return attr;
     }
     return null;
   }
@@ -1303,12 +1304,11 @@ export class NamedNodeMap {
   setNamedItem(attr: Attr): Attr | null {
     const existing = this.getNamedItem(attr.name);
     if (existing) {
-      const index = indexOf(this, existing);
-      if (index !== -1) {
-        getListStorage(this).splice(index, 1, attr);
-      } else {
-        return null;
+      let index = 0;
+      for (; index < this.length; index++) {
+        if (this.item(index) === existing) break;
       }
+      getListStorage(this).splice(index, 1, attr);
     } else {
       getListStorage(this).append(attr);
     }
@@ -1318,12 +1318,11 @@ export class NamedNodeMap {
   setNamedItemNS(attr: Attr): Attr | null {
     const existing = this.getNamedItemNS(attr.namespaceURI, attr.localName);
     if (existing) {
-      const index = indexOf(this, existing);
-      if (index !== -1) {
-        getListStorage(this).splice(index, 1, attr);
-      } else {
-        return null;
+      let index = 0;
+      for (; index < this.length; index++) {
+        if (this.item(index) === existing) break;
       }
+      getListStorage(this).splice(index, 1, attr);
     } else {
       getListStorage(this).append(attr);
     }
@@ -1333,8 +1332,11 @@ export class NamedNodeMap {
   removeNamedItem(name: string): Attr {
     const existing = this.getNamedItem(name);
     if (existing) {
-      const index = indexOf(this, existing);
-      if (index !== -1) getListStorage(this).splice(index, 1);
+      let index = 0;
+      for (; index < this.length; index++) {
+        if (this.item(index) === existing) break;
+      }
+      getListStorage(this).splice(index, 1);
       return existing;
     } else {
       throw new DOMException(
@@ -1347,8 +1349,11 @@ export class NamedNodeMap {
   removeNamedItemNS(namespace: string | null, localName: string): Attr {
     const existing = this.getNamedItemNS(namespace, localName);
     if (existing) {
-      const index = indexOf(this, existing);
-      if (index !== -1) getListStorage(this).splice(index, 1);
+      let index = 0;
+      for (; index < this.length; index++) {
+        if (this.item(index) === existing) break;
+      }
+      getListStorage(this).splice(index, 1);
       return existing;
     } else {
       throw new DOMException(
