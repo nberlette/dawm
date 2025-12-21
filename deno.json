@@ -38,7 +38,7 @@
       ]
     },
     "build": {
-      "command": "npm pack ./npm/dist --pack-destination ./npm/dist",
+      "command": "npm pack ./npm/dist --pack-destination ./npm",
       "description": "Build all distributables and package for release",
       "dependencies": [
         "build:npm"
@@ -106,18 +106,7 @@
         "prepublish:npm"
       ]
     },
-    "prepublish": {
-      "dependencies": [
-        "prepublish:npm",
-        "prepublish:jsr"
-      ]
-    },
-    "publish": {
-      "dependencies": [
-        "publish:npm",
-        "publish:jsr"
-      ]
-    },
+    "publish": "deno task publish:npm && deno task publish:jsr",
     "bump": {
       "command": "deno run -Aq ./scripts/bump_version.ts",
       "description": "Bump versions in deno.json/package.json/Cargo.toml"
@@ -127,11 +116,7 @@
       "description": "Bump version, commit changes, push to origin"
     },
     "relish": {
-      "dependencies": [
-        "release",
-        "publish:npm",
-        "publish:jsr"
-      ],
+      "command": "deno task release && deno task publish",
       "description": "Create a GitHub Release and Publish to JSR + NPM"
     },
     "burp": {

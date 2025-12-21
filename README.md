@@ -12,12 +12,11 @@ for use in any ES2015+ JavaScript runtime with [WebAssembly] support.</small>
 
 ## Introduction
 
-**`dawm`** — _like **DOM**, but with **a** lil' **WebAssembly**_ — is a portable
-toolkit for parsing, traversing, manipulating, and serializing HTML/SVG/XML code
-in (usually) headless JavaScript environments. It features a hybrid codebase
-combining a high-performance parser written in [Rust] with high-level
-[Document Object Model (DOM)][DOM] standard APIs implemented in strict,
-well-documented TypeScript.
+**`dawm`** is a headless DOM toolkit for parsing, traversing, manipulating, and
+serializing HTML/SVG/XML documents in server-side / serverless / edge
+environments. Its hybrid codebase couples a high-speed DOM parser written in
+[Rust] with TypeScript implementations of many of the standard
+[Document Object Model (DOM)][DOM] APIs.
 
 The overall developer experience with `dawm` is uncannily familiar for anyone
 with frontend development experience, making it adoptable by a vast majority of
@@ -61,12 +60,15 @@ const options = {
   contextElement: null, // default context element name (for fragments)
 } satisfies ParseOptions;
 
+// The `parseHTML` function is also available via standard DOM APIs:
+// - `DOMParser.parseFromString(string, "text/html")`
+// - `Document.parseHTML(string, options)`
 const doc = parseHTML(
   "<!doctype html><html><body><h1>Hello, world!</h1></body></html>",
   options,
 );
 
-const h1 = doc.firstElementChild?.firstChild;
+const h1 = doc.body.firstElementChild;
 assert.strictEqual(h1?.tagName, "H1");
 assert.strictEqual(h1.textContent, "Hello, world!");
 assert.strictEqual(h1.parentNode, doc.body);
