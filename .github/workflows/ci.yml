@@ -252,7 +252,6 @@ jobs:
           node-version: 22.x
           registry-url: "https://npm.pkg.github.com/"
           scope: "@nberlette"
-          cache: "npm"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - if: env.PUBLISH_GPR == 'true'
@@ -272,7 +271,6 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         with:
           node-version: 22.x
-          cache: "npm"
           registry-url: "https://registry.npmjs.org/"
 
       - if: env.PUBLISH_NPM == 'true'
