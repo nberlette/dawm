@@ -96,7 +96,7 @@ jobs:
 
       - id: build
         name: Build WebAssembly Bindings
-        run: deno task build
+        run: deno task build:wasm
         env:
           WASM_OPT_LEVEL: 4
           WASM_OPT_BULK_MEMORY: 1
@@ -132,6 +132,7 @@ jobs:
             ./*.json
             ./npm
             ./src
+            ./rs_lib
             ./target
           retention-days: 90
 
@@ -150,6 +151,7 @@ jobs:
             /home/runner/.deno
             ./.coverage
             ./target
+            ./rs_lib
             ./npm
             ./src
 
@@ -208,9 +210,9 @@ jobs:
             /home/runner/.deno
             ./target
             ./.coverage
-            ./lib
-            ./crates
+            ./rs_lib
             ./src
+            ./npm
 
       - if: needs.ci.outputs.artifact-exists == 'true'
         id: artifact
@@ -239,7 +241,7 @@ jobs:
         name: Publish to JSR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: deno task publish
+        run: deno task publish:jsr
 
       - if: env.PUBLISH_GPR == 'true'
         name: Setup Node.js for GPR
@@ -257,15 +259,9 @@ jobs:
           PACKAGE_NAME: ${{ env.GPR_PACKAGE }}
           NPM_REGISTRY_URL: "https://npm.pkg.github.com/"
           NPM_DIST_TAG: ${{ vars.NPM_DIST_TAG || 'latest' }}
-        run: deno task build:npm
-
-      - if: env.PUBLISH_GPR == 'true'
-        id: publish-gpr
-        name: Publish to GitHub Package Registry
-        env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        working-directory: ./npm/dist
-        run: npm publish --access public --registry https://npm.pkg.github.com/
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: deno task publish:gpr
 
       - if: env.PUBLISH_NPM == 'true'
         name: Setup Node.js
@@ -278,20 +274,15 @@ jobs:
           registry-url: "https://registry.npmjs.org/"
 
       - if: env.PUBLISH_NPM == 'true'
-        name: Build NPM Package
+        id: release-npm
+        name: "Build & Publish NPM Package"
         env:
           PACKAGE_NAME: ${{ env.NPM_PACKAGE }}
           NPM_REGISTRY_URL: "https://registry.npmjs.org/"
           NPM_DIST_TAG: ${{ vars.NPM_DIST_TAG || 'latest' }}
-        run: deno task build:npm
-
-      - if: env.PUBLISH_NPM == 'true'
-        id: publish-npm
-        name: Publish to NPM
-        env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        working-directory: ./npm/dist
-        run: npm publish --access public --registry https://registry.npmjs.org/
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: deno task publish:npm
 
       - id: release
         if: startsWith(github.ref, 'refs/tags/')

@@ -4,14 +4,59 @@
  * Copyright 2025 Nicholas Berlette. All rights reserved. MIT license.
  */
 // deno-lint-ignore-file no-import-prefix no-console
-import path from "node:path";
-import { $ } from "jsr:@david/dax@0.44.1";
+import { $, Path } from "jsr:@david/dax@0.44.1";
 import process from "node:process";
 import { Buffer } from "node:buffer";
 import { brotliCompressSync, constants } from "node:zlib";
 
 const name = "dawm";
 const outDir = "src/wasm";
+const srcDir = "rs_lib";
+
+const scriptsDir = $.path(new URL(".", import.meta.url).pathname);
+
+console.debug(`scriptsDir: ${scriptsDir}`);
+
+const glue = $.path(outDir).join(name + ".js");
+const glue_dts = glue.withExtname(".d.ts");
+
+const dest = glue.withBasename("index.js");
+const dest_dts = glue_dts.withBasename("index.d.ts");
+
+const wasm = $.path(outDir).join(name + "_bg.wasm");
+
+const minify = process.env.MINIFY !== "0" &&
+  !process.argv.includes("--no-minify");
+const brotli = process.env.BROTLI !== "0" &&
+  !process.argv.includes("--no-brotli");
+
+const wasmPackVersion = process.env.WASM_PACK_VERSION || "0.13.1";
+const wasmPackTarget = process.env.WASM_PACK_TARGET || "deno";
+const wasmPackMode = process.env.DEBUG || process.argv.includes("--debug")
+  ? "dev"
+  : process.env.PROFILE
+  ? "profiling"
+  : "release";
+const maybeNoOpt =
+  process.env.WASM_OPT === "0" || process.env.WASM_OPT_LEVEL === "0" ||
+    process.argv.includes("--no-opt") || process.argv.includes("--skip-opt")
+    ? "--no-opt"
+    : "";
+
+async function wasmpack(
+  src: string | Path = srcDir,
+  out: string | Path = `../${outDir}`,
+  env: Record<string, string> = {},
+) {
+  try {
+    const result =
+      await $`deno run -Aq npm:wasm-pack@${wasmPackVersion} build --${wasmPackMode} --weak-refs --reference-types --target ${wasmPackTarget} --no-pack --no-opt --out-name ${name} --out-dir ${out} ${src}`
+        .printCommand(true).env(env);
+    return result;
+  } catch {
+    return null;
+  }
+}
 
 async function requires(...executables: string[]) {
   for (const executable of executables) {
@@ -40,10 +85,10 @@ function err(text: string): never {
   return process.exit(1);
 }
 
-async function build(...args: string[]) {
+async function build() {
   await requires("rustup", "rustc", "cargo");
 
-  if (!(await $.path("Cargo.toml").stat())?.isFile) {
+  if (!(await $.path(srcDir).join("Cargo.toml").stat())?.isFile) {
     err(`the build script should be executed in the "${name}" root`);
   }
 
@@ -51,83 +96,32 @@ async function build(...args: string[]) {
     await $`cargo install -f wasm-bindgen-cli`.printCommand(true);
   }
 
-  const wasmpack = async (env: Record<string, string> = {}) =>
-    await $`deno run -Aq npm:wasm-pack@0.13.1 build --release --target deno --no-pack --out-name ${name} --out-dir ../${outDir} rs_lib`
-      .printCommand(true).env(env);
-
-  const firstAttempt = await wasmpack().catch(() => null);
-  if (firstAttempt === null) {
-    await patch_wasm_opt(...args);
-    await wasmpack();
-  }
-
+  await wasmpack(srcDir);
   log(`build completed successfully`, 32);
 
-  await inline_wasm(...args);
+  if (!maybeNoOpt) await wasm_opt(wasm);
+
+  await inline_wasm();
+  log(`inlined wasm successfully`, 32);
 }
 
-async function patch_wasm_opt(...args: string[]) {
-  // find wasm-opt installation(s)
-  let WASM_OPT_BINARY = await $.which("wasm-opt").catch(() => undefined);
-  let seenPatchedFile = false;
-  if (!WASM_OPT_BINARY) {
-    // wasm-opt dir structure is like so:
-    // /home/vscode/.cache/.wasm-pack/wasm-opt-1ceaaea8b7b5f7e0/bin/wasm-opt
-    const baseDir = [
-      path.join(process.env.HOME ?? "", ".cache", ".wasm-pack"),
-    ];
-    outer: for (const base of baseDir) {
-      inner: for await (const entry of $.path(base).readDir()) {
-        if (entry.isDirectory && entry.name.startsWith("wasm-opt-")) {
-          const candidate = path.join(base, entry.name, "bin", "wasm-opt");
-          const patchedFile = path.join(base, entry.name, "bin", "wasm-opt.sh");
-          const stat = await $.path(patchedFile).stat() ?? null;
-          if (stat?.isFile) {
-            seenPatchedFile = true;
-            continue inner; // skip already patched files
-          }
-          const stat2 = await $.path(candidate).stat() ?? null;
-          if (stat2?.isFile) {
-            WASM_OPT_BINARY = candidate;
-            break outer; // found it
-          }
-        }
-      }
-    }
-  }
+type OptLevel = "0" | "1" | "2" | "3" | "4" | "s" | "z";
 
-  if (!WASM_OPT_BINARY && !args.includes("--no-opt") && !seenPatchedFile) {
-    err(
-      "could not find wasm-opt installation; please install binary or pass --no-opt to skip optimization",
-    );
+async function wasm_opt(
+  wasmPath: string | Path,
+  optLevel?: OptLevel,
+): Promise<void> {
+  const wasm_opt = scriptsDir.join(".wasm_opt", "wasm-opt");
+  if (!await wasm_opt.exists()) {
+    await $`deno -A ./download_wasm_opt.ts`.cwd(scriptsDir).printCommand(true);
   }
-
-  // patch wasm-opt binary(s) for our environment
-  if (WASM_OPT_BINARY) {
-    process.env.WASM_OPT_BINARY = WASM_OPT_BINARY;
-    log(`using wasm-opt binary at ${WASM_OPT_BINARY}`);
-    const scriptsDir = import.meta.dirname ??
-      new URL(".", import.meta.url).pathname;
-    log(`patching wasm-opt binary for DAWM build environment`);
-    const code = await $`./patch_wasm_opt.sh`.quiet().env({ WASM_OPT_BINARY })
-      .cwd(scriptsDir).code();
-    if (code !== 0) {
-      err(`failed to patch wasm-opt binary. run again with --no-opt`);
-    }
-  }
+  optLevel ??= process.env.WASM_OPT_LEVEL as OptLevel || "4";
+  log(`optimizing wasm with wasm-opt -O${optLevel}`, 36);
+  await $`${wasm_opt} -O${optLevel} --all-features --enable-bulk-memory --enable-reference-types -o ${wasmPath} ${wasmPath}`
+    .printCommand(true);
 }
 
-async function inline_wasm(...args: string[]) {
-  // inline wasm in JS file as base64, replacing wasm loading code
-  const glue = $.path(outDir).join(name + ".js");
-  const glue_dts = glue.withExtname(".d.ts");
-
-  const dest = glue.withBasename("index.js");
-  const dest_dts = glue_dts.withBasename("index.d.ts");
-
-  const wasm = $.path(outDir).join(name + "_bg.wasm");
-  const wasm_src = await wasm.readBytes();
-
+async function inline_wasm() {
   let glue_src = await glue.readText();
   let glue_dts_src = await glue_dts.readText();
 
@@ -149,6 +143,7 @@ async function inline_wasm(...args: string[]) {
   // we WILL be using atob() to decode base64 strings, so we add a side-effect
   // import from `@nick/atob/shim` to ensure it's always available.
   glue_src = `import "jsr:@nick/atob/shim";\n${glue_src}`;
+
   glue_dts_src = $.dedent`
     // deno-lint-ignore-file
     // deno-coverage-ignore-file
@@ -156,9 +151,11 @@ async function inline_wasm(...args: string[]) {
     ${glue_dts_src.replace(/\/\*\s*[et]slint[-\s\w:]+\*\/\s*\n/g, "")}
   `;
 
-  let final_wasm = wasm_src;
-  let byte_str = "bytes";
-  if (process.env.BROTLI !== "0" && !args.includes("--no-brotli")) {
+  const wasm_src = await wasm.readBytes();
+  let final_wasm = wasm_src, byte_str = "bytes";
+
+  // allow brotli to be bypassed via env var or CLI arg
+  if (brotli) {
     byte_str = `decompress(${byte_str})`;
     // add import from debrotli module for decompression
     glue_src = `import { decompress } from "debrotli";\n${glue_src}`;
@@ -173,7 +170,14 @@ async function inline_wasm(...args: string[]) {
       },
     });
   }
-  const b64 = Buffer.from(final_wasm).toString("base64");
+
+  let b64 = "";
+  // we use native encoding/decoding to base64 when available
+  if ("toBase64" in final_wasm && typeof final_wasm.toBase64 === "function") {
+    b64 = final_wasm.toBase64({ alphabet: "base64", omitPadding: false });
+  } else {
+    b64 = Buffer.from(final_wasm).toString("base64");
+  }
   let loader = `base64decode("\\\n${b64.replace(/.{77}/g, "$&\\\n")}\\\n")`;
 
   // marks the beginning of the area we want to replace
@@ -191,8 +195,8 @@ async function inline_wasm(...args: string[]) {
   const after = glue_src.slice(endIdx);
   loader = $.dedent`
     ${before}
-    const bytes = ${loader};
-    const wasmModule = new WebAssembly.Module(bytes);
+    const wasmBytes = ${loader};
+    const wasmModule = new WebAssembly.Module(wasmBytes);
     const instance = new WebAssembly.Instance(wasmModule, imports);
     wasm = instance.exports;
 
@@ -221,15 +225,17 @@ async function inline_wasm(...args: string[]) {
   await wasm_dts.ensureRemove();
   await wasm.ensureRemove();
 
-  // rename dawm.js -> index.js
-  await glue.rename(dest);
   // rename dawm.d.ts -> index.d.ts
   await glue_dts.rename(dest_dts);
   // write modified glue code with inlined wasm
-  await dest.writeText(loader);
+  await glue.writeText(loader);
   // format things
   // await $`deno fmt -q --no-config ${dest.dirname()}`.quiet().code();
-  await $`deno bundle -q --minify --external=debrotli --packages=bundle --vendor --output=${dest} --platform=browser --format=esm ${dest}`;
+  await $`deno bundle -q ${
+    minify ? "--minify" : ""
+  } --external=debrotli --packages=bundle --output=${dest} --platform=browser --format=esm ${glue}`;
+
+  await glue.ensureRemove();
 
   const bundled = await dest.readText();
 
@@ -284,4 +290,4 @@ function pretty_bytes(
   return `${size} ${unitOverride ?? units[i]}`;
 }
 
-if (import.meta.main) await build(...process.argv.slice(2));
+if (import.meta.main) await build();

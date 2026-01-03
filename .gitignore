@@ -13,3 +13,5 @@ lib
 *.tgz
 *.tar.gz
 src/wasm/*.wasm
+scripts/.wasm_opt
+.git-2
