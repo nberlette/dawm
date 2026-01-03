@@ -1,6 +1,6 @@
 {
   "name": "dawm",
-  "version": "0.1.0-rc.4",
+  "version": "0.1.0-rc.5",
   "description": "High-performance headless DOM toolkit with an HTML/XML parser written in Rust, and DOM APIs implemented in TypeScript. Purpose-built for server-side workflows like web scraping and static site generation.",
   "keywords": [
     "dom",

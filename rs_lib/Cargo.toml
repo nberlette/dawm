@@ -1,6 +1,6 @@
 [package]
 name = "dawm"
-version = "0.1.0-rc.4"
+version = "0.1.0-rc.5"
 edition = "2024"
 license = "MIT"
 description = "Universal DOM parser implementation for JavaScript and WebAssembly, powered by Servo's html5ever/xml5ever under the hood."
@@ -24,7 +24,7 @@ serde = { version = "1.0", features = ["derive", "alloc", "rc"] }
 serde_repr = "0.1.20"
 wasm-bindgen = "=0.2.106"
 js-sys = "=0.3.83"
-moos = { version = "0.2", features = ["derive_more"] }
+moos = { version = "0.3", features = ["derive_more"] }
 serde-wasm-bindgen = "0.6.5"
 derive_more = { version = "2.1", features = [
   "as_ref",

@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "dawm"
-version = "0.1.0-rc.4"
+version = "0.1.0-rc.5"
 dependencies = [
  "derive_more",
  "html5ever",
@@ -145,9 +145,9 @@ dependencies = [
 
 [[package]]
 name = "moos"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47bd4e1d92dfd2373ce117427affe46e8e713d76aaaafa7308216598f950f9bf"
+checksum = "a418c89f2b6961d06174252b76d8992d95b98c891ca66d1f7cff2f0f30851b6e"
 dependencies = [
  "derive_more",
  "serde",
