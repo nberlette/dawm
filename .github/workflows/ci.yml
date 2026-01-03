@@ -252,6 +252,8 @@ jobs:
           node-version: 22.x
           registry-url: "https://npm.pkg.github.com/"
           scope: "@nberlette"
+          cache: "npm"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - if: env.PUBLISH_GPR == 'true'
         name: Build GPR Package
