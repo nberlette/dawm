@@ -12,12 +12,14 @@ import {
   DocumentType,
   Element,
   GenericNode,
+  HTMLDocument,
   isNodeLike,
   type Node,
   NodeType,
   QuirksMode,
   type QuirksModeType,
   Text,
+  XMLDocument,
 } from "./dom.ts";
 import {
   isResolvedWireNode,
@@ -74,12 +76,19 @@ function instantiateDomNode(
   let instance: Node;
   switch (node.nodeType) {
     case NodeType.Document: {
-      const doc = new Document(
-        context.contentType,
-        context.quirksMode,
-        context.namespaceURI,
-        context.baseURI,
-      );
+      let doc: Document;
+      if (context.contentType === "text/html") {
+        doc = new HTMLDocument();
+      } else if (context.contentType === "application/xhtml+xml") {
+        doc = new Document(
+          context.contentType,
+          context.quirksMode,
+          "http://www.w3.org/1999/xhtml",
+          context.baseURI,
+        );
+      } else {
+        doc = new XMLDocument();
+      }
       context.document = doc;
       defineInternedStrings(doc, context.strings);
       instance = doc;
@@ -186,6 +195,7 @@ function readInternedStrings(n: Node | null): readonly string[] {
   if (n) {
     const doc = n.nodeType === NodeType.Document ? n : n.ownerDocument;
     if (doc) {
+      // deno-lint-ignore no-explicit-any
       const strings = (doc as any)[INTERNED_STRINGS];
       if (isArray<string>(strings)) return strings;
     }

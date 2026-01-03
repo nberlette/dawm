@@ -2,6 +2,7 @@ import {
   FunctionPrototypeCall,
   indexOf,
   isFunction,
+  isIdentifier,
   isNumber,
   isString,
   Number,
@@ -30,6 +31,7 @@ import {
   type Element,
   type Node,
   NodeType,
+  type ParentNode,
 } from "./dom.ts";
 
 // #region internal
@@ -682,7 +684,7 @@ export const NodeListOf: NodeListConstructor = NodeList as never;
 
 // #region HTMLCollection
 
-export type OwnerElement = Element | Document | DocumentFragment;
+export type OwnerElement = ParentNode | Element | Document | DocumentFragment;
 
 /**
  * Represents a live HTMLCollection as defined by the DOM Standard, which is an
@@ -1036,7 +1038,7 @@ export class DOMTokenList {
 
   toggle(token: string, force?: boolean): boolean {
     const contains = this.#updateTokens()?.includes(token) ?? false;
-    if (force === undefined) force = !contains;
+    if (force == null) force = !contains;
     if (force) {
       this.add(token);
     } else {
@@ -1236,7 +1238,9 @@ export class NamedNodeMap {
           for (let i = 0; i < t.length; i++) {
             const attr = t[i];
             if (!attr?.name) continue;
-            keys.push(attr.name);
+            if (isIdentifier(attr.name) && !keys.includes(attr.name)) {
+              keys.push(attr.name);
+            }
             keys.push(String(i));
           }
         }

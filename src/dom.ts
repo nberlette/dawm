@@ -3,7 +3,6 @@ import {
   isInteger,
   isObject,
   ObjectDefineProperties,
-  push,
   splice,
   XMLNS_NAMESPACE,
 } from "./_internal.ts";
@@ -18,14 +17,13 @@ import {
   NodeList,
   NodeListOf,
 } from "./collections.ts";
-import querySelectorAll, { querySelector } from "./select.ts";
+import { querySelector, querySelectorAll } from "./select.ts";
 import { serializeHTML } from "./serialize.ts";
-import { NodeType } from "./wasm/index.js";
+import { NodeType } from "./wasm.ts";
 import { parseFragment, parseHTML, parseXML } from "./parse.ts";
 import type { FragmentParseOptions, ParseOptions } from "./options.ts";
 
-// @ts-types="./wasm/index.d.ts"
-export { NodeType, QuirksMode } from "./wasm/index.js";
+export { NodeType, QuirksMode } from "./wasm.ts";
 
 export type QuirksModeType = "no-quirks" | "quirks" | "limited-quirks";
 
@@ -52,6 +50,12 @@ export function isNodeLike(
 
 // #region Concrete Types
 
+const readonly = <T>(
+  value: T,
+  enumerable = true,
+  configurable = false,
+) => ({ value, writable: false, enumerable, configurable });
+
 /**
  * Represents a DOM Node as defined by the DOM Standard.
  *
@@ -66,15 +70,33 @@ export function isNodeLike(
  * @see {@linkcode Document} for document-specific properties and methods.
  * @see {@linkcode Text} for text node-specific properties and methods.
  * @abstract
- * @category Types
- * @tags DOM, Node
+ * @category DOM
+ * @tags Node
  */
-export abstract class Node {
+export abstract class Node extends EventTarget {
   static #__id = 0;
 
-  abstract readonly nodeType: NodeType;
+  static readonly ELEMENT_NODE = 1;
+  static readonly ATTRIBUTE_NODE = 2;
+  static readonly TEXT_NODE = 3;
+  static readonly CDATA_SECTION_NODE = 4;
+  static readonly ENTITY_REFERENCE_NODE = 5;
+  static readonly ENTITY_NODE = 6;
+  static readonly PROCESSING_INSTRUCTION_NODE = 7;
+  static readonly COMMENT_NODE = 8;
+  static readonly DOCUMENT_NODE = 9;
+  static readonly DOCUMENT_TYPE_NODE = 10;
+  static readonly DOCUMENT_FRAGMENT_NODE = 11;
+  static readonly NOTATION_NODE = 12;
 
-  #baseURI: string | null = null;
+  static readonly DOCUMENT_POSITION_DISCONNECTED = 0x01;
+  static readonly DOCUMENT_POSITION_PRECEDING = 0x02;
+  static readonly DOCUMENT_POSITION_FOLLOWING = 0x04;
+  static readonly DOCUMENT_POSITION_CONTAINS = 0x08;
+  static readonly DOCUMENT_POSITION_CONTAINED_BY = 0x10;
+  static readonly DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC = 0x20;
+
+  abstract readonly nodeType: NodeType;
 
   readonly id: string;
   nodeName: string;
@@ -89,6 +111,7 @@ export abstract class Node {
   attributes: NamedNodeMap | null = null;
   readonly childNodes: NodeListOf<Node>;
 
+  #baseURI: string | null = null;
   constructor(
     nodeName: string,
     nodeValue: string | null,
@@ -96,6 +119,8 @@ export abstract class Node {
     firstChild?: Node | null,
     nextSibling?: Node | null,
   ) {
+    super();
+
     this.id = `node-${++Node.#__id}`;
     this.nodeName = nodeName;
     this.nodeValue = nodeValue ?? null;
@@ -200,40 +225,14 @@ export abstract class Node {
     this.textContent = value;
   }
 
-  get innerHTML(): string {
-    let html = "";
-    for (let n = this.firstChild; n; n = n.nextSibling) {
-      if ("outerHTML" in n) html += n.outerHTML;
+  get isConnected(): boolean {
+    // deno-lint-ignore no-this-alias
+    let node: Node | null = this;
+    while (node) {
+      if (node.nodeType === NodeType.Document) return true;
+      node = node.parentNode;
     }
-    return html;
-  }
-
-  set innerHTML(value: string) {
-    let tagName = "div";
-    if (this.nodeType === NodeType.Element) {
-      tagName = (this as unknown as Element).tagName;
-    }
-    const fragment = parseFragment(value, tagName);
-    while (this.firstChild) {
-      this.removeChild(this.firstChild);
-    }
-    for (const node of fragment.childNodes) {
-      this.appendChild(node.cloneNode(true));
-    }
-  }
-
-  get outerHTML(): string {
-    return serializeHTML(this);
-  }
-
-  set outerHTML(value: string) {
-    if (!this.parentNode) {
-      throw new TypeError("Cannot set outerHTML on a disconnected element.");
-    }
-    const ast = parseFragment(value, this.parentElement?.tagName || "div");
-    const node = ast.firstChild?.firstChild?.cloneNode(true);
-    if (!node) throw new Error("Failed to parse HTML fragment.");
-    this.parentNode.replaceChild(node, this);
+    return false;
   }
 
   hasChildNodes(): boolean {
@@ -276,9 +275,7 @@ export abstract class Node {
     newChild.previousSibling = previousSibling;
     newChild.nextSibling = nextSibling;
     newChild.parentNode = this;
-    newChild.ownerDocument = this.nodeType === NodeType.Document
-      ? this as unknown as Document
-      : this.ownerDocument;
+    newChild.ownerDocument = this.ownerDocument;
 
     this.firstChild = children[0] ?? null;
     this.lastChild = children[children.length - 1] ?? null;
@@ -373,6 +370,10 @@ export abstract class Node {
     return true;
   }
 
+  isSameNode(otherNode: Node | null): boolean {
+    return this === otherNode;
+  }
+
   lookupPrefix(namespace: string | null): string | null {
     if (!namespace) return null;
     if (this.nodeType === NodeType.Element && this.attributes) {
@@ -415,16 +416,133 @@ export abstract class Node {
     return node;
   }
 
-  querySelector<T extends Element>(selectors: string): T | null {
-    return querySelector(this, selectors);
-  }
-
-  querySelectorAll<T extends Element>(selectors: string): NodeListOf<T> {
-    const elements = querySelectorAll(this, selectors);
-    return new NodeList(this, elements) as NodeListOf<T>;
+  compareDocumentPosition(other: Node): number {
+    if (this === other) return 0;
+    const these: Node[] = [];
+    // deno-lint-ignore no-this-alias
+    let node: Node | null = this;
+    while (node) {
+      these.push(node);
+      node = node.parentNode;
+    }
+    const those: Node[] = [];
+    node = other;
+    while (node) {
+      those.push(node);
+      node = node.parentNode;
+    }
+    let i = these.length - 1, j = those.length - 1;
+    while (i >= 0 && j >= 0 && these[i] === those[j]) {
+      i--;
+      j--;
+    }
+    if (i < 0 && j < 0) return Node.DOCUMENT_POSITION_DISCONNECTED;
+    if (i < 0) {
+      return Node.DOCUMENT_POSITION_CONTAINED_BY |
+        Node.DOCUMENT_POSITION_FOLLOWING;
+    }
+    if (j < 0) {
+      return Node.DOCUMENT_POSITION_CONTAINS | Node.DOCUMENT_POSITION_PRECEDING;
+    }
+    const thisA = these[i], thatA = those[j];
+    let sibling: Node | null = thisA;
+    while (sibling) {
+      if (sibling === thatA) {
+        return Node.DOCUMENT_POSITION_CONTAINED_BY |
+          Node.DOCUMENT_POSITION_FOLLOWING;
+      }
+      sibling = sibling.previousSibling;
+    }
+    sibling = thatA;
+    while (sibling) {
+      if (sibling === thisA) {
+        return Node.DOCUMENT_POSITION_CONTAINS |
+          Node.DOCUMENT_POSITION_PRECEDING;
+      }
+      sibling = sibling.previousSibling;
+    }
+    return Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
   }
 
   protected abstract cloneShallow(): Node;
+
+  declare readonly ELEMENT_NODE: 1;
+  declare readonly ATTRIBUTE_NODE: 2;
+  declare readonly TEXT_NODE: 3;
+  declare readonly CDATA_SECTION_NODE: 4;
+  declare readonly ENTITY_REFERENCE_NODE: 5;
+  declare readonly ENTITY_NODE: 6;
+  declare readonly PROCESSING_INSTRUCTION_NODE: 7;
+  declare readonly COMMENT_NODE: 8;
+  declare readonly DOCUMENT_NODE: 9;
+  declare readonly DOCUMENT_TYPE_NODE: 10;
+  declare readonly DOCUMENT_FRAGMENT_NODE: 11;
+  declare readonly NOTATION_NODE: 12;
+
+  declare readonly DOCUMENT_POSITION_DISCONNECTED: 0x01;
+  declare readonly DOCUMENT_POSITION_PRECEDING: 0x02;
+  declare readonly DOCUMENT_POSITION_FOLLOWING: 0x04;
+  declare readonly DOCUMENT_POSITION_CONTAINS: 0x08;
+  declare readonly DOCUMENT_POSITION_CONTAINED_BY: 0x10;
+  declare readonly DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC: 0x20;
+
+  static {
+    const props = {
+      ELEMENT_NODE: readonly(this.ELEMENT_NODE, false, false),
+      ATTRIBUTE_NODE: readonly(this.ATTRIBUTE_NODE, false, false),
+      TEXT_NODE: readonly(this.TEXT_NODE, false, false),
+      CDATA_SECTION_NODE: readonly(this.CDATA_SECTION_NODE, false, false),
+      ENTITY_REFERENCE_NODE: readonly(this.ENTITY_REFERENCE_NODE, false, false),
+      ENTITY_NODE: readonly(this.ENTITY_NODE, false, false),
+      PROCESSING_INSTRUCTION_NODE: readonly(
+        this.PROCESSING_INSTRUCTION_NODE,
+        false,
+        false,
+      ),
+      COMMENT_NODE: readonly(this.COMMENT_NODE, false, false),
+      DOCUMENT_NODE: readonly(this.DOCUMENT_NODE, false, false),
+      DOCUMENT_TYPE_NODE: readonly(this.DOCUMENT_TYPE_NODE, false, false),
+      DOCUMENT_FRAGMENT_NODE: readonly(
+        this.DOCUMENT_FRAGMENT_NODE,
+        false,
+        false,
+      ),
+      NOTATION_NODE: readonly(this.NOTATION_NODE, false, false),
+      DOCUMENT_POSITION_DISCONNECTED: readonly(
+        this.DOCUMENT_POSITION_DISCONNECTED,
+        false,
+        false,
+      ),
+      DOCUMENT_POSITION_PRECEDING: readonly(
+        this.DOCUMENT_POSITION_PRECEDING,
+        false,
+        false,
+      ),
+      DOCUMENT_POSITION_FOLLOWING: readonly(
+        this.DOCUMENT_POSITION_FOLLOWING,
+        false,
+        false,
+      ),
+      DOCUMENT_POSITION_CONTAINS: readonly(
+        this.DOCUMENT_POSITION_CONTAINS,
+        false,
+        false,
+      ),
+      DOCUMENT_POSITION_CONTAINED_BY: readonly(
+        this.DOCUMENT_POSITION_CONTAINED_BY,
+        false,
+        false,
+      ),
+      DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC: readonly(
+        this.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC,
+        false,
+        false,
+      ),
+    } as const;
+
+    ObjectDefineProperties(this, props);
+    ObjectDefineProperties(this.prototype, props);
+  }
 }
 
 /**
@@ -450,9 +568,19 @@ export class Attr extends Node {
     super(name, value);
     this.namespaceURI = namespaceURI ?? null;
     this.ownerElement = ownerElement ?? null;
+    this.ownerDocument = ownerElement?.ownerDocument ?? null;
   }
 
   ownerElement: Element | null = null;
+
+  override ownerDocument: Document | null = null;
+
+  override readonly firstChild: null = null;
+  override readonly lastChild: null = null;
+  override readonly previousSibling: null = null;
+  override readonly nextSibling: null = null;
+  override readonly parentNode: null = null;
+  override readonly childNodes: NodeListOf<Node> = new NodeList(this, []);
 
   get nodeType(): NodeType.Attribute {
     return NodeType.Attribute;
@@ -484,65 +612,49 @@ export class Attr extends Node {
     clone.ownerElement = this.ownerElement;
     return clone;
   }
+
+  override appendChild(newChild: Node): never {
+    void newChild;
+    throw new DOMException(
+      "Failed to execute 'appendChild' on 'Attr': Attr nodes cannot have children.",
+      "HierarchyRequestError",
+    );
+  }
+
+  override insertBefore(newChild: Node, refChild: Node | null): never {
+    void newChild, void refChild;
+    throw new DOMException(
+      "Failed to execute 'insertBefore' on 'Attr': Attr nodes cannot have children.",
+      "HierarchyRequestError",
+    );
+  }
+
+  override removeChild(oldChild: Node): never {
+    void oldChild;
+    throw new DOMException(
+      "Failed to execute 'removeChild' on 'Attr': Attr nodes cannot have children.",
+      "HierarchyRequestError",
+    );
+  }
+
+  override replaceChild(newChild: Node, oldChild: Node): never {
+    void newChild, void oldChild;
+    throw new DOMException(
+      "Failed to execute 'replaceChild' on 'Attr': Attr nodes cannot have children.",
+      "HierarchyRequestError",
+    );
+  }
+
+  declare readonly [Symbol.toStringTag]: "Attr";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("Attr", false, true),
+    });
+  }
 }
 
-/**
- * Represents a DOM Element as defined by the DOM Standard.
- *
- * This is a subclass of the abstract {@linkcode Node} interface. It adds a
- * subset of the element-specific properties and methods found in the DOM
- * specification, which focus on implementing the behavior of element nodes,
- * their attributes, and their relationships to the rest of the document tree.
- *
- * @see {@linkcode Node} for the base Node properties and methods.
- * @category Types
- * @tags DOM, Element
- */
-export class Element extends Node {
-  readonly tagName: string;
-  override readonly attributes: NamedNodeMap;
-
-  constructor(
-    tagName: string,
-    attrs: Attr[] = [],
-    parentNode?: Node | null,
-    firstChild?: Node | null,
-    nextSibling?: Node | null,
-  ) {
-    super(tagName, null);
-    this.tagName = tagName.toUpperCase();
-    this.attributes = createNamedNodeMap(this, attrs);
-    for (const attr of attrs) attr.ownerElement = this;
-    this.parentNode = parentNode ?? null;
-    this.firstChild = firstChild ?? null;
-    this.nextSibling = nextSibling ?? null;
-  }
-
-  get nodeType(): NodeType.Element {
-    return NodeType.Element;
-  }
-
-  get isSelfClosing(): boolean {
-    const selfClosingTags = new Set([
-      "area",
-      "base",
-      "br",
-      "col",
-      "embed",
-      "hr",
-      "img",
-      "input",
-      "keygen",
-      "link",
-      "meta",
-      "param",
-      "source",
-      "track",
-      "wbr",
-    ]);
-    return selfClosingTags.has(this.tagName.toLowerCase());
-  }
-
+export abstract class ParentNode extends Node {
   get firstElementChild(): Element | null {
     for (let n = this.firstChild; n; n = n.nextSibling) {
       if (n.nodeType === NodeType.Element) return n as Element;
@@ -589,6 +701,239 @@ export class Element extends Node {
     }, "children");
   }
 
+  append(...nodes: Node[]): void {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      this.appendChild(node);
+    }
+  }
+
+  prepend(...nodes: Node[]): void {
+    let refNode = this.firstChild;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      this.insertBefore(node, refNode);
+      refNode = node.nextSibling;
+    }
+  }
+
+  before(...nodes: Node[]): void {
+    if (!this.parentNode) {
+      throw new DOMException(
+        "Failed to execute 'before' on 'Node': The node has no parent.",
+        "HierarchyRequestError",
+      );
+    }
+    let refNode = this as Node | null;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      this.parentNode.insertBefore(node, refNode);
+      refNode = node.nextSibling;
+    }
+  }
+
+  after(...nodes: Node[]): void {
+    if (!this.parentNode) {
+      throw new DOMException(
+        "Failed to execute 'after' on 'Node': The node has no parent.",
+        "HierarchyRequestError",
+      );
+    }
+    let refNode = this.nextSibling;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      this.parentNode.insertBefore(node, refNode);
+      refNode = node.nextSibling;
+    }
+  }
+
+  replaceChildren(...nodes: Node[]): void {
+    while (this.firstChild) this.removeChild(this.firstChild);
+    this.append(...nodes);
+  }
+
+  querySelector<T extends Element>(selectors: string): T | null {
+    return querySelector(this, selectors);
+  }
+
+  querySelectorAll<T extends Element>(selectors: string): NodeListOf<T> {
+    const elements = querySelectorAll(this, selectors);
+    return new NodeList(this, elements) as NodeListOf<T>;
+  }
+
+  getElementById(elementId: string): Element | null {
+    function traverse(node: Node | null): Element | null {
+      while (node) {
+        if (node.nodeType === NodeType.Element) {
+          const element = node as Element;
+          if (element.getAttribute("id") === elementId) {
+            return element;
+          } else if (element.id === elementId) {
+            return element;
+          } else if (element.getAttribute("name") === elementId) {
+            return element;
+          }
+        }
+        if (node.nextSibling) {
+          node = node.nextSibling;
+        } else {
+          node = node.firstChild;
+        }
+      }
+      return null;
+    }
+
+    let child = this.firstChild;
+    while (child) {
+      const result = traverse(child);
+      if (result) return result;
+      child = child.nextSibling;
+    }
+    return null;
+  }
+
+  getElementsByTagName<T extends Element>(
+    tagName: string,
+  ): HTMLCollectionOf<T> {
+    const get = () => {
+      const elements: T[] = [];
+      const lowerTagName = tagName.toLowerCase();
+
+      const traverse = (node: Node | null): void => {
+        while (node) {
+          if (node.nodeType === NodeType.Element) {
+            const element = node as T;
+            if (
+              tagName === "*" ||
+              element.tagName.toLowerCase() === lowerTagName
+            ) {
+              elements.push(element);
+            }
+          }
+          if (node.nextSibling) node = node.nextSibling;
+          else node = node.firstChild;
+        }
+      };
+
+      traverse(this.firstChild);
+      return elements;
+    };
+    return createHTMLCollection(this, get, "getElementsByTagName");
+  }
+
+  getElementsByTagNameNS<T extends Element>(
+    namespace: string | null,
+    localName: string,
+  ): HTMLCollectionOf<T> {
+    const get = () => {
+      const elements: T[] = [];
+      const lowerLocalName = localName.toLowerCase();
+
+      const traverse = (node: Node | null): void => {
+        while (node) {
+          if (node.nodeType === NodeType.Element) {
+            const element = node as T;
+            const elementNamespace = element.namespaceURI ?? null;
+            if (
+              (localName === "*" ||
+                element.localName.toLowerCase() === lowerLocalName) &&
+              (namespace === "*" || elementNamespace === namespace)
+            ) {
+              elements.push(element);
+            }
+          }
+          if (node.nextSibling) node = node.nextSibling;
+          else node = node.firstChild;
+        }
+      };
+
+      traverse(this.firstChild);
+      return elements;
+    };
+    return createHTMLCollection(this, get, "getElementsByTagNameNS");
+  }
+
+  getElementsByClassName<T extends Element>(
+    className: string,
+  ): HTMLCollectionOf<T> {
+    const get = () => {
+      const elements: T[] = [];
+      const traverse = (node: Node | null): void => {
+        while (node) {
+          if (node.nodeType === NodeType.Element) {
+            const element = node as T;
+            if (element.classList.contains(className)) {
+              elements.push(element);
+            }
+          }
+          if (node.nextSibling) node = node.nextSibling;
+          else node = node.firstChild;
+        }
+      };
+      traverse(this.firstChild);
+      return elements;
+    };
+    return createHTMLCollection(this, get, "getElementsByClassName");
+  }
+}
+
+/**
+ * Represents a DOM Element as defined by the DOM Standard.
+ *
+ * This is a subclass of the abstract {@linkcode Node} interface. It adds a
+ * subset of the element-specific properties and methods found in the DOM
+ * specification, which focus on implementing the behavior of element nodes,
+ * their attributes, and their relationships to the rest of the document tree.
+ *
+ * @see {@linkcode Node} for the base Node properties and methods.
+ * @category Types
+ * @tags DOM, Element
+ */
+export class Element extends ParentNode {
+  readonly tagName: string;
+  override readonly attributes: NamedNodeMap;
+
+  constructor(
+    tagName: string,
+    attrs: Attr[] = [],
+    parentNode?: Node | null,
+    firstChild?: Node | null,
+    nextSibling?: Node | null,
+  ) {
+    super(tagName, null);
+    this.tagName = tagName.toUpperCase();
+    this.attributes = createNamedNodeMap(this, attrs);
+    for (const attr of attrs) attr.ownerElement = this;
+    this.parentNode = parentNode ?? null;
+    this.firstChild = firstChild ?? null;
+    this.nextSibling = nextSibling ?? null;
+  }
+
+  get nodeType(): NodeType.Element {
+    return NodeType.Element;
+  }
+
+  get isSelfClosing(): boolean {
+    const selfClosingTags = new Set([
+      "area",
+      "base",
+      "br",
+      "col",
+      "embed",
+      "hr",
+      "img",
+      "input",
+      "keygen",
+      "link",
+      "meta",
+      "param",
+      "source",
+      "track",
+      "wbr",
+    ]);
+    return selfClosingTags.has(this.tagName.toLowerCase());
+  }
+
   get className(): string {
     return this.getAttribute("class") ?? "";
   }
@@ -605,6 +950,42 @@ export class Element extends Node {
     return new DOMStringMap(this);
   }
 
+  get innerHTML(): string {
+    let html = "";
+    for (let n = this.firstChild; n; n = n.nextSibling) {
+      if ("outerHTML" in n) html += n.outerHTML;
+    }
+    return html;
+  }
+
+  set innerHTML(value: string) {
+    let tagName = "div";
+    if (this.nodeType === NodeType.Element) {
+      tagName = (this as unknown as Element).tagName;
+    }
+    const fragment = parseFragment(value, tagName);
+    while (this.firstChild) {
+      this.removeChild(this.firstChild);
+    }
+    for (const node of fragment.childNodes) {
+      this.appendChild(node.cloneNode(true));
+    }
+  }
+
+  get outerHTML(): string {
+    return serializeHTML(this);
+  }
+
+  set outerHTML(value: string) {
+    if (!this.parentNode) {
+      throw new TypeError("Cannot set outerHTML on a disconnected element.");
+    }
+    const ast = parseFragment(value, this.parentElement?.tagName || "div");
+    const node = ast.firstChild?.firstChild?.cloneNode(true);
+    if (!node) throw new Error("Failed to parse HTML fragment.");
+    this.parentNode.replaceChild(node, this);
+  }
+
   getAttribute(name: string): string | null {
     return this.getAttributeNode(name)?.value ?? null;
   }
@@ -614,7 +995,7 @@ export class Element extends Node {
   }
 
   setAttribute(name: string, value: string): void {
-    const attr = new Attr(name, value, null);
+    const attr = new Attr(name, value, this.namespaceURI, this);
     this.setAttributeNode(attr);
   }
 
@@ -623,7 +1004,7 @@ export class Element extends Node {
     qualifiedName: string,
     value: string,
   ): void {
-    const attr = new Attr(qualifiedName, value, namespace ?? null);
+    const attr = new Attr(qualifiedName, value, namespace ?? null, this);
     attr.namespaceURI = namespace ?? null;
     this.setAttributeNode(attr);
   }
@@ -694,13 +1075,8 @@ export class Element extends Node {
     // @ts-ignore intentional readonly re-assignment
     candidate.ownerElement = this;
 
-    if (existing) {
-      const index = indexOf(this.attributes, existing);
-      return splice(this.attributes, index, 1, candidate)[0];
-    }
-
-    push(this.attributes, candidate);
-    return null;
+    this.attributes.setNamedItem(candidate);
+    return existing ?? null;
   }
 
   setAttributeNodeNS(attr: Attr): Attr | null {
@@ -711,20 +1087,14 @@ export class Element extends Node {
 
     // @ts-ignore intentional readonly re-assignment
     candidate.ownerElement = this;
-
-    if (existing) {
-      const index = indexOf(this.attributes, existing);
-      return splice(this.attributes, index, 1, candidate)[0];
-    }
-
-    push(this.attributes, candidate);
-    return null;
+    this.attributes.setNamedItemNS(candidate);
+    return existing ?? null;
   }
 
   removeAttributeNode(attr: Attr): Attr | null {
     const index = indexOf(this.attributes, attr);
     if (!attr || index < 0) throw new TypeError("Attribute not found");
-    splice(this.attributes, indexOf(this.attributes, attr), 1);
+    this.attributes.removeNamedItem(attr.name);
     // @ts-ignore intentional readonly re-assignment
     attr.ownerElement = null!;
     return attr;
@@ -747,6 +1117,14 @@ export class Element extends Node {
       }
     }
     return clone;
+  }
+
+  declare readonly [Symbol.toStringTag]: string;
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("Element", false, true),
+    });
   }
 }
 
@@ -812,6 +1190,14 @@ export abstract class CharacterData extends Node {
   override cloneNode(): CharacterData {
     return this.cloneShallow();
   }
+
+  declare readonly [Symbol.toStringTag]: string;
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("CharacterData", false, true),
+    });
+  }
 }
 
 /**
@@ -872,6 +1258,14 @@ export class Text extends CharacterData {
   override cloneNode(): Text {
     return this.cloneShallow();
   }
+
+  declare readonly [Symbol.toStringTag]: "Text";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("Text", false, true),
+    });
+  }
 }
 
 /**
@@ -894,6 +1288,14 @@ export class CDATASection extends CharacterData {
 
   override cloneNode(): CDATASection {
     return this.cloneShallow();
+  }
+
+  declare readonly [Symbol.toStringTag]: "CDATASection";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("CDATASection", false, true),
+    });
   }
 }
 
@@ -930,6 +1332,18 @@ export class ProcessingInstruction extends Node {
   override cloneNode(): ProcessingInstruction {
     return this.cloneShallow();
   }
+
+  declare readonly [Symbol.toStringTag]: "ProcessingInstruction";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly(
+        "ProcessingInstruction",
+        false,
+        true,
+      ),
+    });
+  }
 }
 
 /**
@@ -953,6 +1367,14 @@ export class Comment extends CharacterData {
   override cloneNode(): Comment {
     return this.cloneShallow();
   }
+
+  declare readonly [Symbol.toStringTag]: "Comment";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("Comment", false, true),
+    });
+  }
 }
 
 /**
@@ -965,7 +1387,7 @@ export class Comment extends CharacterData {
  * @category Types
  * @tags DOM, DocumentFragment
  */
-export class DocumentFragment extends Node {
+export class DocumentFragment extends ParentNode {
   constructor() {
     super("#document-fragment", null);
   }
@@ -974,37 +1396,6 @@ export class DocumentFragment extends Node {
 
   get nodeType(): NodeType.DocumentFragment {
     return NodeType.DocumentFragment;
-  }
-
-  getElementById(elementId: string): Element | null {
-    function traverse(node: Node | null): Element | null {
-      while (node) {
-        if (node.nodeType === NodeType.Element) {
-          const element = node as Element;
-          if (element.getAttribute("id") === elementId) {
-            return element;
-          } else if (element.id === elementId) {
-            return element;
-          } else if (element.getAttribute("name") === elementId) {
-            return element;
-          }
-        }
-        if (node.nextSibling) {
-          node = node.nextSibling;
-        } else {
-          node = node.firstChild;
-        }
-      }
-      return null;
-    }
-
-    let child = this.firstChild;
-    while (child) {
-      const result = traverse(child);
-      if (result) return result;
-      child = child.nextSibling;
-    }
-    return null;
   }
 
   getElementsByName<T extends Element>(name: string): NodeListOf<T> {
@@ -1031,93 +1422,27 @@ export class DocumentFragment extends Node {
     return new NodeListOf(this, get(), get);
   }
 
-  getElementsByTagName<T extends Element>(tagName: string): NodeListOf<T> {
-    const get = () => {
-      const elements: T[] = [];
-      const lowerTagName = tagName.toLowerCase();
-
-      const traverse = (node: Node | null): void => {
-        while (node) {
-          if (node.nodeType === NodeType.Element) {
-            const element = node as T;
-            if (
-              tagName === "*" ||
-              element.tagName.toLowerCase() === lowerTagName
-            ) {
-              elements.push(element);
-            }
-          }
-          if (node.nextSibling) node = node.nextSibling;
-          else node = node.firstChild;
-        }
-      };
-
-      traverse(this.firstChild);
-      return elements;
-    };
-
-    return new NodeListOf(this, get(), get);
-  }
-
-  getElementsByTagNameNS<T extends Element>(
-    namespace: string | null,
-    localName: string,
-  ): NodeListOf<T> {
-    const get = () => {
-      const elements: T[] = [];
-      const lowerLocalName = localName.toLowerCase();
-
-      const traverse = (node: Node | null): void => {
-        while (node) {
-          if (node.nodeType === NodeType.Element) {
-            const element = node as T;
-            const elementNamespace = element.namespaceURI ?? null;
-            if (
-              (localName === "*" ||
-                element.localName.toLowerCase() === lowerLocalName) &&
-              (namespace === "*" || elementNamespace === namespace)
-            ) {
-              elements.push(element);
-            }
-          }
-          if (node.nextSibling) node = node.nextSibling;
-          else node = node.firstChild;
-        }
-      };
-
-      traverse(this.firstChild);
-      return elements;
-    };
-
-    return new NodeListOf(this, get(), get);
-  }
-
-  getElementsByClassName<T extends Element>(className: string): NodeListOf<T> {
-    const get = () => {
-      const elements: T[] = [];
-
-      const traverse = (node: Node | null): void => {
-        while (node) {
-          if (node.nodeType === NodeType.Element) {
-            const element = node as T;
-            if (element.classList.contains(className)) {
-              elements.push(element);
-            }
-          }
-          if (node.nextSibling) node = node.nextSibling;
-          else node = node.firstChild;
-        }
-      };
-
-      traverse(this.firstChild);
-      return elements;
-    };
-
-    return new NodeListOf(this, get(), get);
-  }
-
   protected cloneShallow(): DocumentFragment {
     return new DocumentFragment();
+  }
+
+  override cloneNode(deep?: boolean): DocumentFragment {
+    const clone = this.cloneShallow();
+    if (deep) {
+      for (const child of this.children) {
+        const childClone = child.cloneNode(true);
+        clone.appendChild(childClone);
+      }
+    }
+    return clone;
+  }
+
+  declare readonly [Symbol.toStringTag]: "DocumentFragment";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("DocumentFragment", false, true),
+    });
   }
 }
 
@@ -1168,11 +1493,19 @@ export class DocumentType extends Node {
   override cloneNode(): DocumentType {
     return this.cloneShallow();
   }
+
+  declare readonly [Symbol.toStringTag]: "DocumentType";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("DocumentType", false, true),
+    });
+  }
 }
 
 const XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 
-export type VisibilityState = "hidden" | "visible" | "prerender" | "unloaded";
+export type VisibilityState = "hidden" | "visible";
 
 /**
  * Represents a DOM Document as defined by the DOM Standard.
@@ -1184,7 +1517,7 @@ export type VisibilityState = "hidden" | "visible" | "prerender" | "unloaded";
  * @category Types
  * @tags DOM, Document
  */
-export class Document extends Node {
+export class Document extends ParentNode {
   /**
    * Parse an HTML string into a new `Document` instance.
    */
@@ -1236,6 +1569,7 @@ export class Document extends Node {
   #contentType: string;
   #visibilityState: VisibilityState = "visible";
   #url: string | null = null;
+  #implementation: DOMImplementation | null = null;
 
   cookie: string = "";
   override readonly ownerDocument: Document = this;
@@ -1255,12 +1589,6 @@ export class Document extends Node {
     this.#baseURI = baseURI;
 
     this.namespaceURI = namespaceURI;
-
-    const readonly = <T>(
-      value: T,
-      enumerable = true,
-      configurable = false,
-    ) => ({ value, writable: false, enumerable, configurable });
 
     ObjectDefineProperties(this, {
       nodeType: readonly(NodeType.Document),
@@ -1450,6 +1778,10 @@ export class Document extends Node {
     titleElement.textContent = value;
   }
 
+  get implementation(): DOMImplementation {
+    return this.#implementation ??= new DOMImplementation();
+  }
+
   protected cloneShallow(): Document {
     return new Document(this.contentType, this.quirksMode);
   }
@@ -1526,37 +1858,6 @@ export class Document extends Node {
     return doctype;
   }
 
-  getElementById(elementId: string): Element | null {
-    function traverse(node: Node | null): Element | null {
-      while (node) {
-        if (node.nodeType === NodeType.Element) {
-          const element = node as Element;
-          if (element.getAttribute("id") === elementId) {
-            return element;
-          } else if (element.id === elementId) {
-            return element;
-          } else if (element.getAttribute("name") === elementId) {
-            return element;
-          }
-        }
-        if (node.nextSibling) {
-          node = node.nextSibling;
-        } else {
-          node = node.firstChild;
-        }
-      }
-      return null;
-    }
-
-    let child = this.firstChild;
-    while (child) {
-      const result = traverse(child);
-      if (result) return result;
-      child = child.nextSibling;
-    }
-    return null;
-  }
-
   getElementsByName<T extends Element>(name: string): HTMLCollectionOf<T> {
     const get = () => {
       const elements: T[] = [];
@@ -1580,90 +1881,6 @@ export class Document extends Node {
     return createHTMLCollection(this, get, "getElementsByName");
   }
 
-  getElementsByTagName<T extends Element>(
-    tagName: string,
-  ): HTMLCollectionOf<T> {
-    const get = () => {
-      const elements: T[] = [];
-      const lowerTagName = tagName.toLowerCase();
-
-      const traverse = (node: Node | null): void => {
-        while (node) {
-          if (node.nodeType === NodeType.Element) {
-            const element = node as T;
-            if (
-              tagName === "*" ||
-              element.tagName.toLowerCase() === lowerTagName
-            ) {
-              elements.push(element);
-            }
-          }
-          if (node.nextSibling) node = node.nextSibling;
-          else node = node.firstChild;
-        }
-      };
-
-      traverse(this.firstChild);
-      return elements;
-    };
-    return createHTMLCollection(this, get, "getElementsByTagName");
-  }
-
-  getElementsByTagNameNS<T extends Element>(
-    namespace: string | null,
-    localName: string,
-  ): HTMLCollectionOf<T> {
-    const get = () => {
-      const elements: T[] = [];
-      const lowerLocalName = localName.toLowerCase();
-
-      const traverse = (node: Node | null): void => {
-        while (node) {
-          if (node.nodeType === NodeType.Element) {
-            const element = node as T;
-            const elementNamespace = element.namespaceURI ?? null;
-            if (
-              (localName === "*" ||
-                element.localName.toLowerCase() === lowerLocalName) &&
-              (namespace === "*" || elementNamespace === namespace)
-            ) {
-              elements.push(element);
-            }
-          }
-          if (node.nextSibling) node = node.nextSibling;
-          else node = node.firstChild;
-        }
-      };
-
-      traverse(this.firstChild);
-      return elements;
-    };
-    return createHTMLCollection(this, get, "getElementsByTagNameNS");
-  }
-
-  getElementsByClassName<T extends Element>(
-    className: string,
-  ): HTMLCollectionOf<T> {
-    const get = () => {
-      const elements: T[] = [];
-      const traverse = (node: Node | null): void => {
-        while (node) {
-          if (node.nodeType === NodeType.Element) {
-            const element = node as T;
-            if (element.classList.contains(className)) {
-              elements.push(element);
-            }
-          }
-          if (node.nextSibling) node = node.nextSibling;
-          else node = node.firstChild;
-        }
-      };
-      traverse(this.firstChild);
-      return elements;
-    };
-    return createHTMLCollection(this, get, "getElementsByClassName");
-  }
-
   override cloneNode(deep?: boolean): Document {
     const clone = this.cloneShallow();
     if (deep) {
@@ -1678,6 +1895,42 @@ export class Document extends Node {
       clone.#titleElement = this.#titleElement?.cloneNode(true) ?? null;
     }
     return clone;
+  }
+
+  declare readonly [Symbol.toStringTag]: string;
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("Document", false, true),
+    });
+  }
+}
+
+export class HTMLDocument extends Document {
+  constructor() {
+    super("text/html", "no-quirks", XHTML_NAMESPACE);
+  }
+
+  declare readonly [Symbol.toStringTag]: "HTMLDocument";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("HTMLDocument", false, true),
+    });
+  }
+}
+
+export class XMLDocument extends Document {
+  constructor() {
+    super("application/xml", "no-quirks", null);
+  }
+
+  declare readonly [Symbol.toStringTag]: "XMLDocument";
+
+  static {
+    ObjectDefineProperties(this.prototype, {
+      [Symbol.toStringTag]: readonly("XMLDocument", false, true),
+    });
   }
 }
 
@@ -1712,6 +1965,55 @@ export class GenericNode extends Node {
   }
 }
 
+export class DOMImplementation {
+  createDocument(
+    namespaceURI: string | null,
+    qualifiedName: string,
+    doctype: DocumentType | null,
+  ): Document {
+    const doc = new Document(
+      "application/xml",
+      "no-quirks",
+      namespaceURI,
+    );
+    // @ts-ignore intentional readonly re-assignment
+    doc.ownerDocument = doc;
+    if (doctype) doc.appendChild(doctype);
+    const root = doc.createElementNS(namespaceURI ?? "", qualifiedName);
+    doc.appendChild(root);
+    return doc;
+  }
+
+  createDocumentType(
+    name: string,
+    publicId: string,
+    systemId: string,
+  ): DocumentType {
+    const doctype = new DocumentType(name, publicId, systemId);
+    return doctype;
+  }
+
+  createHTMLDocument(title?: string): HTMLDocument {
+    const doc = new HTMLDocument();
+    // @ts-ignore intentional readonly re-assignment
+    doc.ownerDocument = doc;
+    const doctype = doc.createDocumentType("html", "", "");
+    doc.appendChild(doctype);
+    const html = doc.createElement("html");
+    const head = doc.createElement("head");
+    const body = doc.createElement("body");
+    if (title) {
+      const titleElement = doc.createElement("title");
+      titleElement.textContent = title;
+      head.appendChild(titleElement);
+    }
+    html.appendChild(head);
+    html.appendChild(body);
+    doc.appendChild(html);
+    return doc;
+  }
+}
+
 /**
  * Represents a DOM Parser as defined by the DOM Standard.
  *
@@ -1733,12 +2035,12 @@ export class DOMParser {
     this.#options = options;
   }
 
-  parseFromString(html: string, contentType: "text/html"): Document;
-  parseFromString(svg: string, contentType: "image/svg+xml"): Document;
+  parseFromString(html: string, contentType: "text/html"): HTMLDocument;
+  parseFromString(svg: string, contentType: "image/svg+xml"): XMLDocument;
   parseFromString(
     xml: string,
     contentType: "application/xml" | "text/xml" | "application/xhtml+xml",
-  ): Document;
+  ): XMLDocument;
   parseFromString(str: string, contentType?: string): Document;
   parseFromString(str: string, contentType: string): Document {
     if (contentType === "text/html") {

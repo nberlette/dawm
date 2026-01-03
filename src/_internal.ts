@@ -153,6 +153,10 @@ export function isArray<T>(
   return true;
 }
 
+export function isIdentifier(s: string): boolean {
+  return /^[$_\p{XIDS}][$_\u200C\u200D\p{XIDC}0-9]*$/u.test(s);
+}
+
 export const Symbol = globalThis.Symbol;
 export const SymbolToStringTag = Symbol.toStringTag;
 export const SymbolIterator = Symbol.iterator;
