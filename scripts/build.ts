@@ -138,11 +138,11 @@ async function inline_wasm() {
     glue_src.includes("TextEncoder") ||
     glue_src.includes("TextDecoder")
   ) {
-    glue_src = `import "jsr:@nick/utf8/shim";\n${glue_src}`;
+    glue_src = `import "jsr:@nick/utf8@0.4.1/shim";\n${glue_src}`;
   }
   // we WILL be using atob() to decode base64 strings, so we add a side-effect
   // import from `@nick/atob/shim` to ensure it's always available.
-  glue_src = `import "jsr:@nick/atob/shim";\n${glue_src}`;
+  glue_src = `import "jsr:@nick/atob@0.3.0/shim";\n${glue_src}`;
 
   glue_dts_src = $.dedent`
     // deno-lint-ignore-file
