@@ -91,7 +91,8 @@ async function main(): Promise<void> {
   const downloadedLib = path.resolve(unpackedLib, libName);
 
   const outDir = path.resolve(__dirname, ".wasm_opt");
-  const outBin = path.resolve(outDir, EXE);
+  const binDir = path.resolve(outDir, "bin");
+  const outBin = path.resolve(binDir, EXE);
   const libDir = path.resolve(outDir, "lib");
   const outLib = path.resolve(libDir, libName);
 
