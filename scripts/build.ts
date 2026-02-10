@@ -30,7 +30,7 @@ const minify = process.env.MINIFY !== "0" &&
 const brotli = process.env.BROTLI !== "0" &&
   !process.argv.includes("--no-brotli");
 
-const wasmPackVersion = process.env.WASM_PACK_VERSION || "0.13.1";
+const wasmPackVersion = process.env.WASM_PACK_VERSION || "0.14.0";
 const wasmPackTarget = process.env.WASM_PACK_TARGET || "deno";
 const wasmPackMode = process.env.DEBUG || process.argv.includes("--debug")
   ? "dev"
