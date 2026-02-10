@@ -3,7 +3,7 @@
 import { $ } from "jsr:@david/dax@0.44.1";
 import * as dnt from "jsr:@deno/dnt@0.42.3";
 import denoJson from "../deno.json" with { type: "json" };
-import process from "node:process";
+import process, { env } from "node:process";
 
 const NPM_DIR = $.path("./npm").resolve();
 const SRC_DIR = $.path("./src").resolve();
@@ -12,30 +12,31 @@ const OUT_DIR = NPM_DIR.join("dist");
 const outDir = OUT_DIR.toString();
 await dnt.emptyDir(outDir);
 
-const exports = Object.keys(denoJson.exports).filter((k) =>
+const exports = Object.entries(denoJson.exports).filter(([k]) =>
   k !== "." && !k.includes("/global")
 );
+const entryPoints = [
+  { kind: "export" as const, name: ".", path: "./src/index.ts" },
+  ...exports.flatMap(([name, path]) => {
+    const extensions = ["", ".js"] as const;
+    return extensions.map((
+      ext,
+    ) => ({
+      kind: "export",
+      name: `${name}${ext}`,
+      path,
+    } as const));
+  }),
+];
 
 await dnt.build({
-  entryPoints: [
-    { kind: "export", name: ".", path: "./src/index.ts" },
-    ...exports.flatMap((name) => {
-      const extensions = ["", ".js"] as const;
-      return extensions.map((
-        ext,
-      ) => ({
-        kind: "export",
-        name: `${name}${ext}`,
-        path: `./src/${name}.ts`,
-      } as const));
-    }),
-  ],
+  entryPoints,
   outDir,
   shims: {},
   package: {
-    name: process.env.PACKAGE_NAME || "dawm",
+    name: env.PACKAGE_NAME || "dawm",
     license: denoJson.license,
-    version: process.env.PACKAGE_VERSION || denoJson.version,
+    version: env.PACKAGE_VERSION || denoJson.version,
     author: denoJson.author,
     main: "./cjs/index.js",
     module: "./esm/index.js",
@@ -67,8 +68,9 @@ await dnt.build({
       "High-performance headless DOM toolkit with an HTML/XML parser written in Rust, and DOM APIs implemented in TypeScript. Purpose-built for server-side workflows like web scraping and static site generation.",
     publishConfig: {
       access: "public",
-      tag: process.env.NPM_DIST_TAG || "latest",
-      registry: process.env.NPM_REGISTRY_URL || "https://registry.npmjs.org/",
+      tag: env.NPM_DIST_TAG || "latest",
+      registry: env.NPM_REGISTRY_URL || env.NPM_CONFIG_REGISTRY ||
+        env.REGISTRY_URL || "https://registry.npmjs.org/",
     },
   },
   esModule: true,
@@ -76,6 +78,12 @@ await dnt.build({
   configFile: $.path("./deno.json").resolve().toFileUrl().toString(),
   test: false,
   typeCheck: false,
+  declaration: "inline",
+  declarationMap: false,
+  compilerOptions: {
+    target: "ES2022",
+    skipLibCheck: true,
+  },
   async postBuild() {
     const cjsDir = OUT_DIR.join("cjs");
     // const cjsWasmDir = cjsDir.join("wasm");
