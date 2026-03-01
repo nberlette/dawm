@@ -1,0 +1,34 @@
+[package]
+name = "dawm"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords = ["dom", "html", "xml", "parser", "wasm"]
+description = "Rust implementation of an HTML and XML parser for WebAssembly, powered by Servo's html5ever and xml5ever libraries under the hood."
+readme = "../README.md"
+categories = ["web-programming", "parsing", "wasm"]
+
+[lib]
+name = "dawm"
+crate-type = ["cdylib"]
+
+[dependencies]
+html5ever.workspace = true
+markup5ever.workspace = true
+xml5ever = { workspace = true, optional = true }
+tendril.workspace = true
+wasm-bindgen.workspace = true
+serde.workspace = true
+serde_repr.workspace = true
+js-sys.workspace = true
+moos.workspace = true
+derive_more.workspace = true
+
+[features]
+default = ["serde", "tree", "xml"]
+serde = []
+tree = []
+xml = ["xml5ever"]
