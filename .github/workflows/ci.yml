@@ -63,7 +63,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node: [22.x]
     outputs:
       artifact-digest: ${{ steps.artifact.outputs.artifact-digest }}
       artifact-id: ${{ steps.artifact.outputs.artifact-id }}
@@ -72,9 +71,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          submodules: recursive
+        uses: actions/checkout@v6
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -82,9 +79,9 @@ jobs:
           deno-version: ${{ github.event.inputs.deno-version || 'canary' }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 24
 
       - name: Setup Rust
         uses: dsherret/rust-toolchain-file@v1
@@ -123,37 +120,40 @@ jobs:
       - if: runner.os == 'Linux' && steps.build.outcome == 'success'
         id: artifact
         name: upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: dawm-${{ github.sha }}
+          name: ${{ github.repository }}-${{ github.ref_name }}-${{ github.sha }}
           path: |
             ./LICENSE
             ./README.md
             ./*.json
             ./npm
             ./src
-            ./rs_lib
+            ./wasm
             ./target
           retention-days: 90
 
       - if: runner.os == 'Linux'
         id: cache
         name: Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
-          key: deno-${{ github.event.inputs.deno-version || 'canary' }}_dawm-${{ github.ref_name }}_${{ github.sha }}
+          key: deno-${{ github.event.inputs.deno-version || 'canary' }}_${{ github.repository }}-${{ github.ref_name }}_${{ github.sha }}
           restore-keys: |
-            deno-${{ github.event.inputs.deno-version || 'canary' }}_dawm-${{ github.ref_name }}_
-            deno-${{ github.event.inputs.deno-version || 'canary' }}_dawm-
+            deno-${{ github.event.inputs.deno-version || 'canary' }}_${{ github.repository }}-${{ github.ref_name }}_
+            deno-${{ github.event.inputs.deno-version || 'canary' }}_${{ github.repository }}-
           path: |
             /home/runner/.cache
             /home/runner/.cargo
             /home/runner/.deno
             ./.coverage
-            ./target
-            ./rs_lib
             ./npm
+            ./wasm
+            ./scripts
             ./src
+            ./tests
+            ./target
+            ./vendor
 
   publish:
     name: Publish
@@ -188,7 +188,7 @@ jobs:
       NPM_PACKAGE: ${{ vars.NPM_PACKAGE_NAME }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -198,29 +198,31 @@ jobs:
       - if: needs.ci.outputs.artifact-exists != 'true'
         id: cache
         name: Restore Cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           key: |
-            deno-${{ github.event.inputs.deno-version || 'canary' }}_dawm-${{ github.ref_name }}_${{ github.sha }}
-            deno-${{ github.event.inputs.deno-version || 'canary' }}_dawm-${{ github.ref_name }}_
-            deno-${{ github.event.inputs.deno-version || 'canary' }}_dawm-
+            deno-${{ github.event.inputs.deno-version || 'canary' }}_${{ github.repository }}-${{ github.ref_name }}_${{ github.sha }}
+            deno-${{ github.event.inputs.deno-version || 'canary' }}_${{ github.repository }}-${{ github.ref_name }}_
+            deno-${{ github.event.inputs.deno-version || 'canary' }}_${{ github.repository }}-
           path: |
             /home/runner/.cache
             /home/runner/.cargo
             /home/runner/.deno
-            ./target
             ./.coverage
-            ./rs_lib
-            ./src
             ./npm
+            ./wasm
+            ./scripts
+            ./src
+            ./target
+            ./tests
 
       - if: needs.ci.outputs.artifact-exists == 'true'
         id: artifact
         name: Download Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         continue-on-error: true
         with:
-          name: dawm-${{ github.sha }}
+          name: ${{ github.repository }}-${{ github.sha }}
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -237,58 +239,55 @@ jobs:
         run: deno task build
 
       - id: publish-jsr
-        if: env.PUBLISH_JSR == 'true'
+        if: env.PUBLISH_JSR
         name: Publish to JSR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: deno task publish:jsr
 
-      - if: env.PUBLISH_GPR == 'true'
+      - if: env.PUBLISH_GPR
         name: Setup Node.js for GPR
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          node-version: 22.x
+          node-version: 24
           registry-url: "https://npm.pkg.github.com/"
           scope: "@nberlette"
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - if: env.PUBLISH_GPR == 'true'
+      - if: env.PUBLISH_GPR
         name: Build GPR Package
         env:
           PACKAGE_NAME: ${{ env.GPR_PACKAGE }}
-          NPM_REGISTRY_URL: "https://npm.pkg.github.com/"
+          NPM_CONFIG_REGISTRY: "https://npm.pkg.github.com/"
           NPM_DIST_TAG: ${{ vars.NPM_DIST_TAG || 'latest' }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: deno task publish:gpr
 
-      - if: env.PUBLISH_NPM == 'true'
+      - if: env.PUBLISH_NPM
         name: Setup Node.js
-        uses: actions/setup-node@v5
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        uses: actions/setup-node@v6
         with:
-          node-version: 22.x
+          node-version: 24
           registry-url: "https://registry.npmjs.org/"
 
-      - if: env.PUBLISH_NPM == 'true'
+      - if: env.PUBLISH_NPM
         id: release-npm
         name: "Build & Publish NPM Package"
         env:
           PACKAGE_NAME: ${{ env.NPM_PACKAGE }}
           NPM_REGISTRY_URL: "https://registry.npmjs.org/"
           NPM_DIST_TAG: ${{ vars.NPM_DIST_TAG || 'latest' }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: deno task publish:npm
 
       - id: release
         if: startsWith(github.ref, 'refs/tags/')
         name: Create GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           PRERELEASE=""
           if [[ "${GITHUB_REF_NAME}" == *"-"* ]]; then
@@ -296,11 +295,15 @@ jobs:
           fi
           title=$(date +"%Y-%m-%d")
           assets=()
+
           if [[ "${PUBLISH_NPM}" == "true" || "${PUBLISH_GPR}" == "true" ]]
           then
             assets+=(./npm/dist/*.tgz)
           fi
+
           gh release create "${GITHUB_REF_NAME}" \
             --title "${GITHUB_REF_NAME} - ${title}" \
-            --generate-notes --draft ${PRERELEASE:+--prerelease} \
+            --generate-notes \
+            ${PRERELEASE:+--prerelease} \
+            --discussion-category "Announcements" \
             "${assets[@]}"
