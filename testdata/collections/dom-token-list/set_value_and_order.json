@@ -1,0 +1,10 @@
+{
+  "kind": "class-list",
+  "initialClass": "base",
+  "ops": [
+    { "op": "set-value", "value": "first   second second" },
+    { "op": "add", "args": ["third", "first"] },
+    { "op": "contains", "token": "second" },
+    { "op": "item", "index": 2 }
+  ]
+}

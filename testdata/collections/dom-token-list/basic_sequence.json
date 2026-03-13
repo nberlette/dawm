@@ -1,0 +1,13 @@
+{
+  "kind": "class-list",
+  "initialClass": "a b b",
+  "ops": [
+    { "op": "contains", "token": "a" },
+    { "op": "add", "args": ["c", "a"] },
+    { "op": "remove", "args": ["b"] },
+    { "op": "toggle", "token": "c", "force": false },
+    { "op": "toggle", "token": "d" },
+    { "op": "replace", "from": "a", "to": "x" },
+    { "op": "item", "index": 1 }
+  ]
+}

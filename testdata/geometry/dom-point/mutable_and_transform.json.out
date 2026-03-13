@@ -1,0 +1,44 @@
+{
+  "point": {
+    "w": 1,
+    "x": -2,
+    "y": 8,
+    "z": 0
+  },
+  "results": [
+    {
+      "op": "set",
+      "property": "x",
+      "value": -2
+    },
+    {
+      "op": "set",
+      "property": "y",
+      "value": 8
+    },
+    {
+      "matrix": {
+        "a": 2,
+        "d": 2,
+        "e": 10,
+        "f": -5
+      },
+      "op": "matrixTransform",
+      "result": {
+        "w": 1,
+        "x": 6,
+        "y": 11,
+        "z": 0
+      }
+    },
+    {
+      "op": "toJSON",
+      "result": {
+        "w": 1,
+        "x": -2,
+        "y": 8,
+        "z": 0
+      }
+    }
+  ]
+}

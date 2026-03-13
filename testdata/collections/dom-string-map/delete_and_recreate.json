@@ -1,0 +1,13 @@
+{
+  "kind": "dataset",
+  "initialAttributes": {
+    "data-feature-flag": "enabled"
+  },
+  "ops": [
+    { "op": "delete", "key": "featureFlag" },
+    { "op": "has", "key": "featureFlag" },
+    { "op": "set", "key": "featureFlag", "value": "disabled" },
+    { "op": "get", "key": "featureFlag" },
+    { "op": "keys" }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "attributes": [
+    [
+      "class",
+      "first second third"
+    ]
+  ],
+  "classAttribute": "first second third",
+  "length": 3,
+  "results": [
+    {
+      "op": "set-value",
+      "value": "first   second second"
+    },
+    {
+      "args": [
+        "third",
+        "first"
+      ],
+      "op": "add"
+    },
+    {
+      "op": "contains",
+      "result": true,
+      "token": "second"
+    },
+    {
+      "index": 2,
+      "op": "item",
+      "result": "third"
+    }
+  ],
+  "tokens": [
+    "first",
+    "second",
+    "third"
+  ],
+  "value": "first second third"
+}

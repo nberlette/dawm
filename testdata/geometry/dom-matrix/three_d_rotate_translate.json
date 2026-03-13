@@ -1,0 +1,14 @@
+{
+  "kind": "matrix",
+  "init": {
+    "m11": 1,
+    "m22": 1,
+    "m33": 1,
+    "m44": 1
+  },
+  "ops": [
+    { "method": "rotateAxisAngleSelf", "args": [0, 1, 0, 90] },
+    { "method": "translateSelf", "args": [2, 3, 4] }
+  ],
+  "transformPoint": { "x": 1, "y": 0, "z": 0, "w": 1 }
+}

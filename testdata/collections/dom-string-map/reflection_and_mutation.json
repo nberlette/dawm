@@ -1,0 +1,14 @@
+{
+  "kind": "dataset",
+  "initialAttributes": {
+    "data-user-id": "42",
+    "data-theme": "dark"
+  },
+  "ops": [
+    { "op": "get", "key": "userId" },
+    { "op": "set", "key": "fooBar", "value": "baz" },
+    { "op": "has", "key": "fooBar" },
+    { "op": "delete", "key": "theme" },
+    { "op": "keys" }
+  ]
+}

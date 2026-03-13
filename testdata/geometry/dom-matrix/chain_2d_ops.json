@@ -1,0 +1,10 @@
+{
+  "kind": "matrix",
+  "init": [1, 0, 0, 1, 10, 20],
+  "ops": [
+    { "method": "scaleSelf", "args": [2, 3] },
+    { "method": "translateSelf", "args": [5, -2] },
+    { "method": "rotateSelf", "args": [90] }
+  ],
+  "transformPoint": { "x": 1, "y": 2, "z": 0, "w": 1 }
+}

@@ -1,0 +1,58 @@
+{
+  "attributes": [
+    [
+      "class",
+      "x d"
+    ]
+  ],
+  "classAttribute": "x d",
+  "length": 2,
+  "results": [
+    {
+      "op": "contains",
+      "result": true,
+      "token": "a"
+    },
+    {
+      "args": [
+        "c",
+        "a"
+      ],
+      "op": "add"
+    },
+    {
+      "args": [
+        "b"
+      ],
+      "op": "remove"
+    },
+    {
+      "force": false,
+      "op": "toggle",
+      "result": false,
+      "token": "c"
+    },
+    {
+      "force": null,
+      "op": "toggle",
+      "result": true,
+      "token": "d"
+    },
+    {
+      "from": "a",
+      "op": "replace",
+      "result": true,
+      "to": "x"
+    },
+    {
+      "index": 1,
+      "op": "item",
+      "result": "d"
+    }
+  ],
+  "tokens": [
+    "x",
+    "d"
+  ],
+  "value": "x d"
+}

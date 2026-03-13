@@ -1,0 +1,15 @@
+{
+  "kind": "point",
+  "ops": [
+    { "op": "toJSON" },
+    {
+      "op": "matrixTransform",
+      "matrix": {
+        "m11": 1,
+        "m22": 1,
+        "m33": 1,
+        "m44": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "attributes": [
+    [
+      "data-foo-bar",
+      "baz"
+    ],
+    [
+      "data-user-id",
+      "42"
+    ]
+  ],
+  "dataAttributes": [
+    [
+      "data-foo-bar",
+      "baz"
+    ],
+    [
+      "data-user-id",
+      "42"
+    ]
+  ],
+  "dataset": {
+    "fooBar": "baz",
+    "userId": "42"
+  },
+  "results": [
+    {
+      "key": "userId",
+      "op": "get",
+      "result": "42"
+    },
+    {
+      "key": "fooBar",
+      "op": "set",
+      "value": "baz"
+    },
+    {
+      "key": "fooBar",
+      "op": "has",
+      "result": true
+    },
+    {
+      "key": "theme",
+      "op": "delete",
+      "result": true
+    },
+    {
+      "keys": [
+        "fooBar",
+        "userId"
+      ],
+      "op": "keys"
+    }
+  ]
+}

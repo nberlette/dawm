@@ -1,0 +1,45 @@
+{
+  "attributes": [
+    [
+      "data-feature-flag",
+      "disabled"
+    ]
+  ],
+  "dataAttributes": [
+    [
+      "data-feature-flag",
+      "disabled"
+    ]
+  ],
+  "dataset": {
+    "featureFlag": "disabled"
+  },
+  "results": [
+    {
+      "key": "featureFlag",
+      "op": "delete",
+      "result": true
+    },
+    {
+      "key": "featureFlag",
+      "op": "has",
+      "result": false
+    },
+    {
+      "key": "featureFlag",
+      "op": "set",
+      "value": "disabled"
+    },
+    {
+      "key": "featureFlag",
+      "op": "get",
+      "result": "disabled"
+    },
+    {
+      "keys": [
+        "featureFlag"
+      ],
+      "op": "keys"
+    }
+  ]
+}
