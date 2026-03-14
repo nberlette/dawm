@@ -1,4 +1,5 @@
 import assert from "node:assert";
+import { DOMException } from "../src/core/DOMException.ts";
 import { HTMLDocument } from "../src/html/HTMLDocument.ts";
 import { XMLDocument } from "../src/xml/XMLDocument.ts";
 
