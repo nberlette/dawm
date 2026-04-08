@@ -1,6 +1,6 @@
-import { ObjectDefineProperty } from "../internal/primordials.ts";
+import { ObjectDefineProperty } from "../../internal/primordials.ts";
 import { XMLHttpRequestEventTarget } from "./XMLHttpRequestEventTarget.ts";
-import { kUploadBrand } from "./_xhr_internal.ts";
+import { kUploadBrand } from "./_helpers.ts";
 
 /**
  * Represents the upload process for a specific {@linkcode XMLHttpRequest}. It

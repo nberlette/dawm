@@ -5,7 +5,7 @@ import {
   ErrorCaptureStackTrace,
   JSONParse,
   ObjectDefineProperty,
-} from "../internal/primordials.ts";
+} from "../../internal/primordials.ts";
 
 export { contentType, getCharset };
 

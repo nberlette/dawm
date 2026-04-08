@@ -1,10 +1,13 @@
-import { Document, XMLDocument } from "../core/Document.ts";
-import { isError } from "../internal/guards.ts";
+import type { Document } from "../../core/Document.ts";
+import { DOMParser } from "../../core/DOMParser.ts";
+import { XMLDocument } from "../XMLDocument.ts";
+import { isError } from "../../internal/guards.ts";
 import {
   FunctionPrototypeCall,
   SymbolToStringTag,
-} from "../internal/primordials.ts";
-import { toStringTag } from "../internal/to_string_tag.decorator.ts";
+} from "../../internal/primordials.ts";
+import { toStringTag } from "../../internal/to_string_tag.decorator.ts";
+import { DOMException } from "../../core/DOMException.ts";
 import {
   appendBytes,
   assert,
@@ -18,9 +21,16 @@ import {
   normalize,
   parseJSONFromBytes,
   State,
-} from "./_xhr_internal.ts";
+} from "./_helpers.ts";
 import { XMLHttpRequestEventTarget } from "./XMLHttpRequestEventTarget.ts";
 import { XMLHttpRequestUpload } from "./XMLHttpRequestUpload.ts";
+import { Event } from "../../events/Event.ts";
+import { ProgressEvent } from "../../events/ProgressEvent.ts";
+// import { Headers } from "../../fetch/Headers.ts";
+// import { Response } from "../../fetch/Response.ts";
+// import { Request } from "../../fetch/Request.ts";
+// import type { BodyInit } from "../../fetch/Body.ts";
+// import { Blob } from "../../fetch/Blob.ts";
 
 export type XMLHttpRequestResponseType =
   | ""
@@ -151,14 +161,15 @@ export class XMLHttpRequest extends XMLHttpRequestEventTarget {
     const src = this.#getTextResponse();
     if (isHTMLMIMEType(finalMIME)) {
       if (this.#responseType === "") return;
-      this.#responseObject = this.#responseDoc = Document.parseHTML(src, {
-        contentType: "text/html",
+      this.#responseObject = this.#responseDoc = new DOMParser({
         quirksMode: "limited-quirks",
-      });
+      }).parseFromString(src, "text/html");
     } else if (isXMLMIMEType(finalMIME)) {
-      this.#responseObject = this.#responseDoc = Document.parseXML(src, {
-        contentType: "application/xml",
-      });
+      this.#responseObject = this.#responseDoc = new DOMParser()
+        .parseFromString(
+          src,
+          "application/xml",
+        );
     }
   };
 
