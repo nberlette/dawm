@@ -1,0 +1,67 @@
+{
+  "name": "dawm",
+  "version": "0.1.0-rc.9",
+  "description": "High-performance headless DOM toolkit with parser packages and DOM APIs implemented in TypeScript.",
+  "author": {
+    "name": "Nicholas Berlette",
+    "email": "nick@berlette.com",
+    "url": "https://github.com/nberlette"
+  },
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/nberlette/dawm/tree/main/packages/dawm#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nberlette/dawm.git",
+    "directory": "packages/dawm"
+  },
+  "bugs": {
+    "url": "https://github.com/nberlette/dawm/issues/new?title=%5Bdawm%5D%20"
+  },
+  "keywords": [
+    "css",
+    "dawm",
+    "dom",
+    "headless",
+    "html",
+    "parser",
+    "typescript",
+    "xml"
+  ],
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./global": "./src/global.ts",
+    "./guards": "./src/guards.ts",
+    "./options": "./src/options.ts",
+    "./parse": "./src/parse.ts",
+    "./serialize": "./src/serialize.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "dawm-cache": "workspace:0.1.0-rc.9",
+    "dawm-console": "workspace:0.1.0-rc.9",
+    "dawm-core": "workspace:0.1.0-rc.9",
+    "dawm-css": "workspace:0.1.0-rc.9",
+    "dawm-encoding": "workspace:0.1.0-rc.9",
+    "dawm-fetch": "workspace:0.1.0-rc.9",
+    "dawm-html": "workspace:0.1.0-rc.9",
+    "dawm-internal": "workspace:0.1.0-rc.9",
+    "dawm-navigator": "workspace:0.1.0-rc.9",
+    "dawm-storage": "workspace:0.1.0-rc.9",
+    "dawm-tree": "workspace:0.1.0-rc.9",
+    "dawm-url": "workspace:0.1.0-rc.9",
+    "dawm-view": "workspace:0.1.0-rc.9",
+    "dawm-webidl": "workspace:0.1.0-rc.9",
+    "dawm-xhr": "workspace:0.1.0-rc.9",
+    "dawm-xml": "workspace:0.1.0-rc.9",
+    "dawm-xpath": "workspace:0.1.0-rc.9"
+  }
+}
