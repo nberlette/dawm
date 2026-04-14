@@ -1,0 +1,48 @@
+{
+  "name": "dawm-xhr",
+  "version": "0.1.0-rc.9",
+  "description": "XMLHttpRequest implementation for dawm headless DOM environments.",
+  "author": {
+    "name": "Nicholas Berlette",
+    "email": "nick@berlette.com",
+    "url": "https://github.com/nberlette"
+  },
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/nberlette/dawm/tree/main/packages/xhr#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nberlette/dawm.git",
+    "directory": "packages/xhr"
+  },
+  "bugs": {
+    "url": "https://github.com/nberlette/dawm/issues/new?title=%5Bdawm-xhr%5D%20"
+  },
+  "keywords": [
+    "dawm",
+    "http",
+    "networking",
+    "typescript",
+    "xhr",
+    "xmlhttprequest"
+  ],
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./xml-http-request": "./src/XMLHttpRequest.ts",
+    "./xml-http-request-event-target": "./src/XMLHttpRequestEventTarget.ts",
+    "./xml-http-request-upload": "./src/XMLHttpRequestUpload.ts"
+  },
+  "dependencies": {
+    "dawm-core": "workspace:0.1.0-rc.9",
+    "dawm-internal": "workspace:0.1.0-rc.9",
+    "dawm-xml": "workspace:0.1.0-rc.9"
+  }
+}

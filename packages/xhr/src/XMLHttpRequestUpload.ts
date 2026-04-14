@@ -1,4 +1,4 @@
-import { ObjectDefineProperty } from "../../internal/primordials.ts";
+import { ObjectDefineProperty } from "dawm-internal/primordials";
 import { XMLHttpRequestEventTarget } from "./XMLHttpRequestEventTarget.ts";
 import { kUploadBrand } from "./_helpers.ts";
 

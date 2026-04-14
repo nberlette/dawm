@@ -5,7 +5,7 @@ import {
   ErrorCaptureStackTrace,
   JSONParse,
   ObjectDefineProperty,
-} from "../../internal/primordials.ts";
+} from "dawm-internal/primordials";
 
 export { contentType, getCharset };
 

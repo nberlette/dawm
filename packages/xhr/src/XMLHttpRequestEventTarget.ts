@@ -1,10 +1,10 @@
-import { _, FunctionPrototypeCall } from "../../_internal.ts";
+import { _, FunctionPrototypeCall } from "dawm-internal";
 import type { XMLHttpRequest } from "./XMLHttpRequest.ts";
-import { EventTarget } from "../../events/EventTarget.ts";
-import { ProgressEvent } from "../../events/ProgressEvent.ts";
-import { DOMException } from "../../core/DOMException.ts";
+import { EventTarget } from "dawm-core/events/event-target";
+import { ProgressEvent } from "dawm-core/events/progress-event";
+import { DOMException } from "dawm-core/dom-exception";
 
-declare module "../../internal/api.ts" {
+declare module "dawm-internal" {
   export interface XMLHttpRequestEventTargetInternal {
     setOnabort<T extends XMLHttpRequestEventTarget>(
       target: T,
@@ -55,13 +55,34 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   #onprogress: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null = null;
   #ontimeout: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null = null;
 
+  constructor() {
+    super();
+    _.enforcePrivateConstructor({
+      arguments,
+      newTarget: new.target,
+      constructor: XMLHttpRequestEventTarget,
+      abstract: true,
+    });
+    return _.webidl.createBranded(this, "XMLHttpRequestEventTarget");
+  }
+
   get onabort(): ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     return this.#onabort;
   }
 
   set onabort(
     handler: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null,
   ) {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (typeof handler !== "function" && handler != null) {
       const name = this.constructor.name || "XMLHttpRequestEventTarget";
       throw new DOMException(
@@ -73,12 +94,22 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   }
 
   get onerror(): ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     return this.#onerror;
   }
 
   set onerror(
     handler: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null,
   ) {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (typeof handler !== "function" && handler != null) {
       const name = this.constructor.name || "XMLHttpRequestEventTarget";
       throw new DOMException(
@@ -90,12 +121,22 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   }
 
   get onload(): ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     return this.#onload;
   }
 
   set onload(
     handler: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null,
   ) {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (typeof handler !== "function" && handler != null) {
       const name = this.constructor.name || "XMLHttpRequestEventTarget";
       throw new DOMException(
@@ -107,12 +148,22 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   }
 
   get onloadend(): ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     return this.#onloadend;
   }
 
   set onloadend(
     handler: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null,
   ) {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (typeof handler !== "function" && handler != null) {
       const name = this.constructor.name || "XMLHttpRequestEventTarget";
       throw new DOMException(
@@ -124,12 +175,22 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   }
 
   get onloadstart(): ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     return this.#onloadstart;
   }
 
   set onloadstart(
     handler: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null,
   ) {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (typeof handler !== "function" && handler != null) {
       const name = this.constructor.name || "XMLHttpRequestEventTarget";
       throw new DOMException(
@@ -141,12 +202,22 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   }
 
   get onprogress(): ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     return this.#onprogress;
   }
 
   set onprogress(
     handler: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null,
   ) {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (typeof handler !== "function" && handler != null) {
       const name = this.constructor.name || "XMLHttpRequestEventTarget";
       throw new DOMException(
@@ -158,12 +229,22 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   }
 
   get ontimeout(): ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     return this.#ontimeout;
   }
 
   set ontimeout(
     handler: ((this: XMLHttpRequest, ev: ProgressEvent) => any) | null,
   ) {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (typeof handler !== "function" && handler != null) {
       const name = this.constructor.name || "XMLHttpRequestEventTarget";
       throw new DOMException(
@@ -174,16 +255,12 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
     this.#ontimeout = handler ?? null;
   }
 
-  constructor() {
-    if (new.target === XMLHttpRequestEventTarget) {
-      throw new TypeError(
-        "Illegal constructor: cannot instantiate abstract class XMLHttpRequestEventTarget directly",
-      );
-    }
-    super();
-  }
-
   override dispatchEvent(evt: Event): boolean {
+    _.webidl.assertBranded(
+      this,
+      XMLHttpRequestEventTargetPrototype,
+      "XMLHttpRequestEventTarget",
+    );
     if (evt instanceof ProgressEvent) {
       const xhr = this as {} as XMLHttpRequest;
       const { type } = evt;
@@ -212,6 +289,7 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
   }
 
   static {
+    _.toStringTag("XMLHttpRequestEventTarget")(this);
     _.XMLHttpRequestEventTarget = {
       setOnabort: (t, f) => (t.#onabort = f, t),
       setOnerror: (t, f) => (t.#onerror = f, t),
@@ -223,3 +301,5 @@ export abstract class XMLHttpRequestEventTarget extends EventTarget {
     };
   }
 }
+
+const XMLHttpRequestEventTargetPrototype = XMLHttpRequestEventTarget.prototype;

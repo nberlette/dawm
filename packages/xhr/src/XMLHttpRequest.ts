@@ -1,13 +1,14 @@
-import type { Document } from "../../core/Document.ts";
-import { DOMParser } from "../../core/DOMParser.ts";
-import { XMLDocument } from "../XMLDocument.ts";
-import { isError } from "../../internal/guards.ts";
+import type { Document } from "dawm-core/document";
+import { DOMParser } from "dawm-core/dom-parser";
+import { DOMException } from "dawm-core/dom-exception";
+import { XMLDocument } from "dawm-xml/xml-document";
 import {
+  $globalThis,
+  _,
   FunctionPrototypeCall,
+  isError,
   SymbolToStringTag,
-} from "../../internal/primordials.ts";
-import { toStringTag } from "../../internal/to_string_tag.decorator.ts";
-import { DOMException } from "../../core/DOMException.ts";
+} from "dawm-internal";
 import {
   appendBytes,
   assert,
@@ -24,13 +25,8 @@ import {
 } from "./_helpers.ts";
 import { XMLHttpRequestEventTarget } from "./XMLHttpRequestEventTarget.ts";
 import { XMLHttpRequestUpload } from "./XMLHttpRequestUpload.ts";
-import { Event } from "../../events/Event.ts";
-import { ProgressEvent } from "../../events/ProgressEvent.ts";
-// import { Headers } from "../../fetch/Headers.ts";
-// import { Response } from "../../fetch/Response.ts";
-// import { Request } from "../../fetch/Request.ts";
-// import type { BodyInit } from "../../fetch/Body.ts";
-// import { Blob } from "../../fetch/Blob.ts";
+import { Event } from "dawm-core/events/event";
+import { ProgressEvent } from "dawm-core/events/progress-event";
 
 export type XMLHttpRequestResponseType =
   | ""
@@ -184,7 +180,28 @@ export class XMLHttpRequest extends XMLHttpRequestEventTarget {
     }
   };
 
-  onreadystatechange: ((this: XMLHttpRequest, ev: Event) => any) | null = null;
+  #onreadystatechange: ((this: XMLHttpRequest, ev: Event) => any) | null = null;
+
+  get onreadystatechange(): ((this: XMLHttpRequest, ev: Event) => any) | null {
+    return this.#onreadystatechange;
+  }
+
+  set onreadystatechange(
+    handler: ((this: XMLHttpRequest, ev: Event) => any) | null,
+  ) {
+    // if (typeof handler !== "function" && handler != null) {
+    //   const name = this.constructor.name || "XMLHttpRequest";
+    //   throw new DOMException(
+    //     `Failed to set 'onreadystatechange' on '${name}': event handler must be a callback function or null`,
+    //     "TypeMismatchError",
+    //   );
+    // }
+    const callback = _.webidl.converters["EventHandler?"](handler, {
+      prefix: `Failed to set 'onreadystatechange' on 'XMLHttpRequest'`,
+      context: "handler",
+    });
+    this.#onreadystatechange = callback ?? null;
+  }
 
   get readyState(): number {
     return this.#state;
@@ -325,9 +342,7 @@ export class XMLHttpRequest extends XMLHttpRequestEventTarget {
       (this.#state === State.OPENED && this.#sendFlag) ||
       this.#state === State.HEADERS_RECEIVED ||
       this.#state === State.LOADING
-    ) {
-      this.#requestErrorSteps("abort");
-    }
+    ) this.#requestErrorSteps("abort");
     if (this.#state === State.DONE) {
       this.#state = State.UNSENT;
       this.#response = undefined;
@@ -383,7 +398,7 @@ export class XMLHttpRequest extends XMLHttpRequestEventTarget {
     try {
       let base: string | undefined;
       try {
-        base = globalThis.location.toString();
+        base = $globalThis.location.toString();
       } catch {
         // we just want to avoid the error about location in Deno
       }
@@ -391,12 +406,8 @@ export class XMLHttpRequest extends XMLHttpRequestEventTarget {
     } catch {
       throw new DOMException(`The url "${url}" is invalid.`, "SyntaxError");
     }
-    if (username != null) {
-      parsedUrl.username = username;
-    }
-    if (password != null) {
-      parsedUrl.password = password;
-    }
+    if (username != null) parsedUrl.username = username;
+    if (password != null) parsedUrl.password = password;
     if (!async) {
       throw new DOMException(
         "Synchronous XHR is not supported in this context.",
@@ -569,7 +580,7 @@ export class XMLHttpRequest extends XMLHttpRequestEventTarget {
   declare readonly [SymbolToStringTag]: "XMLHttpRequest";
 
   static {
-    toStringTag("XMLHttpRequest")(this);
+    _.toStringTag("XMLHttpRequest")(this);
   }
 
   static get DONE(): State.DONE {
