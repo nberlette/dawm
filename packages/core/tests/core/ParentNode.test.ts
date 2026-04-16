@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { buildSampleDOM } from "../../../../test-support/_utils.ts";
+import { buildSampleDOM } from "dawm-testing/utils";
 
 describe("core/ParentNode", () => {
   it("queries elements by tag and class", () => {

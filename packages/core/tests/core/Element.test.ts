@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { Element } from "../../src/Element.ts";
 import { HTMLDocument } from "../../../html/src/HTMLDocument.ts";
 import { XMLDocument } from "../../../xml/src/XMLDocument.ts";
-import { assertThrowsDOM } from "../../../../test-support/_utils.ts";
+import { assertThrowsDOM } from "dawm-testing/utils";
 
 describe("core/Element", () => {
   it("sets/gets/removes attributes", () => {

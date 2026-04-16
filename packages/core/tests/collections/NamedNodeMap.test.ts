@@ -2,7 +2,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 import { Attr } from "../../src/Attr.ts";
 import { Element } from "../../src/Element.ts";
-import { assertThrowsDOM } from "../../../../test-support/_utils.ts";
+import { assertThrowsDOM } from "dawm-testing/utils";
 
 describe("collections/NamedNodeMap", () => {
   it("gets/sets attributes by name (case-insensitive)", () => {

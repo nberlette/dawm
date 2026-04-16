@@ -1,0 +1,45 @@
+{
+  "name": "dawm-testing",
+  "version": "0.1.0-rc.9",
+  "description": "Internal test helpers and fixtures for the dawm monorepo.",
+  "author": {
+    "name": "Nicholas Berlette",
+    "email": "nick@berlette.com",
+    "url": "https://github.com/nberlette"
+  },
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./esm/index.d.ts",
+      "source": "./src/index.ts",
+      "deno": "./src/index.ts",
+      "require": {
+        "types": "./cjs/index.d.ts",
+        "default": "./cjs/index.js"
+      },
+      "default": "./esm/index.js"
+    },
+    "./fixtures": {
+      "types": "./esm/fixtures.d.ts",
+      "source": "./src/fixtures.ts",
+      "deno": "./src/fixtures.ts",
+      "require": {
+        "types": "./cjs/fixtures.d.ts",
+        "default": "./cjs/fixtures.js"
+      },
+      "default": "./esm/fixtures.js"
+    },
+    "./utils": {
+      "types": "./esm/utils.d.ts",
+      "source": "./src/utils.ts",
+      "deno": "./src/utils.ts",
+      "require": {
+        "types": "./cjs/utils.d.ts",
+        "default": "./cjs/utils.js"
+      },
+      "default": "./esm/utils.js"
+    }
+  }
+}

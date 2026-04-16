@@ -10,7 +10,7 @@ import {
   parseJSONFixture,
   type TextFixture,
   toSnapshot,
-} from "../../../../test-support/_fixtures.ts";
+} from "dawm-testing/fixtures";
 
 interface DOMImplementationDoctypeFixture {
   name: string;

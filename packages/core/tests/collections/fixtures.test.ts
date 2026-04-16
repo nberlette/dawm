@@ -6,7 +6,7 @@ import {
   parseJSONFixture,
   type TextFixture,
   toSnapshot,
-} from "../../../../test-support/_fixtures.ts";
+} from "dawm-testing/fixtures";
 
 type ClassListOp =
   | { op: "add"; args: string[] }
