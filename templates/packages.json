@@ -1,0 +1,282 @@
+{
+  "packages": {
+    "animation": {
+      "description": "DOM-compatible animation interfaces and timing primitives for dawm runtimes.",
+      "keywords": ["dawm", "animation", "dom", "web-apis", "typescript"]
+    },
+    "cache": {
+      "description": "Cache API primitives for request and response caching in dawm environments.",
+      "keywords": [
+        "dawm",
+        "cache",
+        "cache-api",
+        "fetch",
+        "service-worker",
+        "typescript"
+      ]
+    },
+    "clipboard": {
+      "description": "Clipboard API classes and events for headless dawm environments.",
+      "keywords": [
+        "dawm",
+        "clipboard",
+        "events",
+        "dom",
+        "web-apis",
+        "typescript"
+      ]
+    },
+    "console": {
+      "description": "Console API implementation and global console wiring for dawm runtimes.",
+      "keywords": [
+        "dawm",
+        "console",
+        "logging",
+        "runtime",
+        "web-apis",
+        "typescript"
+      ]
+    },
+    "core": {
+      "description": "Core DOM node, range, event, collection, and geometry classes used throughout dawm.",
+      "keywords": [
+        "dawm",
+        "dom",
+        "core",
+        "events",
+        "geometry",
+        "collections",
+        "typescript"
+      ]
+    },
+    "css": {
+      "description": "CSSOM, CSS Typed OM, parsing, and serialization utilities for dawm.",
+      "keywords": [
+        "dawm",
+        "css",
+        "cssom",
+        "typed-om",
+        "parser",
+        "serialization",
+        "typescript"
+      ]
+    },
+    "dawm-css-parser": {
+      "name": "dawm-css-parser",
+      "description": "WebAssembly-backed CSS parser package for dawm.",
+      "keywords": [
+        "dawm",
+        "css",
+        "parser",
+        "wasm",
+        "lightningcss",
+        "javascript"
+      ],
+      "main": "./index.js",
+      "module": "./index.js",
+      "types": "./index.d.ts",
+      "files": ["src", "index.js", "index.d.ts", "README.md", "LICENSE"],
+      "exports": {
+        ".": "./index.js"
+      },
+      "dependencies": {
+        "debrotli": "^0.1.0"
+      }
+    },
+    "dawm-html-parser": {
+      "name": "dawm-html-parser",
+      "description": "WebAssembly-backed HTML parser package for dawm.",
+      "keywords": [
+        "dawm",
+        "html",
+        "parser",
+        "wasm",
+        "html5",
+        "javascript"
+      ],
+      "main": "./index.js",
+      "module": "./index.js",
+      "types": "./index.d.ts",
+      "files": ["src", "index.js", "index.d.ts", "README.md", "LICENSE"],
+      "exports": {
+        ".": "./index.js"
+      },
+      "dependencies": {
+        "debrotli": "^0.1.0"
+      }
+    },
+    "dawm-xml-parser": {
+      "name": "dawm-xml-parser",
+      "description": "WebAssembly-backed XML parser package for dawm.",
+      "keywords": [
+        "dawm",
+        "xml",
+        "parser",
+        "wasm",
+        "xml5",
+        "javascript"
+      ],
+      "main": "./index.js",
+      "module": "./index.js",
+      "types": "./index.d.ts",
+      "files": ["src", "index.js", "index.d.ts", "README.md", "LICENSE"],
+      "exports": {
+        ".": "./index.js"
+      },
+      "dependencies": {
+        "debrotli": "^0.1.0"
+      }
+    },
+    "dawm": {
+      "description": "High-performance headless DOM toolkit with parser packages and DOM APIs implemented in TypeScript.",
+      "keywords": [
+        "dawm",
+        "dom",
+        "html",
+        "xml",
+        "css",
+        "parser",
+        "headless",
+        "typescript"
+      ]
+    },
+    "encoding": {
+      "description": "Encoding utilities including TextEncoder, TextDecoder, and base64 helpers for dawm.",
+      "keywords": [
+        "dawm",
+        "encoding",
+        "utf8",
+        "base64",
+        "textencoder",
+        "textdecoder",
+        "typescript"
+      ]
+    },
+    "fetch": {
+      "description": "Fetch API primitives including Request, Response, Headers, Blob, and FormData for dawm.",
+      "keywords": [
+        "dawm",
+        "fetch",
+        "request",
+        "response",
+        "headers",
+        "blob",
+        "typescript"
+      ]
+    },
+    "html": {
+      "description": "HTML document and element classes for the dawm DOM implementation.",
+      "keywords": [
+        "dawm",
+        "html",
+        "dom",
+        "elements",
+        "custom-elements",
+        "typescript"
+      ]
+    },
+    "internal": {
+      "description": "Shared internal utilities and low-level helpers used by dawm workspace packages.",
+      "keywords": ["dawm", "internal", "utilities", "shared", "typescript"]
+    },
+    "navigator": {
+      "description": "Navigator and history-related APIs for dawm runtime environments.",
+      "keywords": [
+        "dawm",
+        "navigator",
+        "history",
+        "runtime",
+        "web-apis",
+        "typescript"
+      ]
+    },
+    "storage": {
+      "description": "Storage API facade and adapters used by dawm runtimes.",
+      "keywords": [
+        "dawm",
+        "storage",
+        "localstorage",
+        "sessionstorage",
+        "web-apis",
+        "typescript"
+      ]
+    },
+    "tree": {
+      "description": "DOM tree construction, traversal, and selector helpers for dawm.",
+      "keywords": [
+        "dawm",
+        "tree",
+        "selectors",
+        "traversal",
+        "dom",
+        "typescript"
+      ]
+    },
+    "url": {
+      "description": "URL, URLSearchParams, and URLPattern implementations for dawm runtimes.",
+      "keywords": [
+        "dawm",
+        "url",
+        "urlpattern",
+        "urlsearchparams",
+        "web-apis",
+        "typescript"
+      ]
+    },
+    "view": {
+      "description": "View, window, screen, and viewport-related APIs for dawm environments.",
+      "keywords": [
+        "dawm",
+        "view",
+        "window",
+        "screen",
+        "viewport",
+        "web-apis",
+        "typescript"
+      ]
+    },
+    "webidl": {
+      "description": "Web IDL conversion, validation, and helper utilities for dawm APIs.",
+      "keywords": [
+        "dawm",
+        "webidl",
+        "idl",
+        "converters",
+        "validation",
+        "typescript"
+      ]
+    },
+    "xhr": {
+      "description": "XMLHttpRequest implementation for dawm headless DOM environments.",
+      "keywords": [
+        "dawm",
+        "xhr",
+        "xmlhttprequest",
+        "http",
+        "networking",
+        "typescript"
+      ],
+      "readme": {
+        "mode": "preserve"
+      },
+      "license": {
+        "mode": "custom"
+      }
+    },
+    "xml": {
+      "description": "XML document and serialization utilities for the dawm DOM toolkit.",
+      "keywords": ["dawm", "xml", "serializer", "document", "dom", "typescript"]
+    },
+    "xpath": {
+      "description": "XPath parsing, evaluation, and result types for dawm XML documents.",
+      "keywords": [
+        "dawm",
+        "xpath",
+        "xml",
+        "selectors",
+        "querying",
+        "typescript"
+      ]
+    }
+  }
+}

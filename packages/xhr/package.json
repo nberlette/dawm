@@ -26,19 +26,57 @@
     "xhr",
     "xmlhttprequest"
   ],
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./cjs/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
   "files": [
     "src",
+    "esm",
+    "cjs",
     "README.md",
     "LICENSE"
   ],
   "exports": {
-    ".": "./src/index.ts",
-    "./xml-http-request": "./src/XMLHttpRequest.ts",
-    "./xml-http-request-event-target": "./src/XMLHttpRequestEventTarget.ts",
-    "./xml-http-request-upload": "./src/XMLHttpRequestUpload.ts"
+    ".": {
+      "types": "./esm/index.d.ts",
+      "source": "./src/index.ts",
+      "deno": "./src/index.ts",
+      "require": {
+        "types": "./cjs/index.d.ts",
+        "default": "./cjs/index.js"
+      },
+      "default": "./esm/index.js"
+    },
+    "./xml-http-request": {
+      "types": "./esm/XMLHttpRequest.d.ts",
+      "source": "./src/XMLHttpRequest.ts",
+      "deno": "./src/XMLHttpRequest.ts",
+      "require": {
+        "types": "./cjs/XMLHttpRequest.d.ts",
+        "default": "./cjs/XMLHttpRequest.js"
+      },
+      "default": "./esm/XMLHttpRequest.js"
+    },
+    "./xml-http-request-event-target": {
+      "types": "./esm/XMLHttpRequestEventTarget.d.ts",
+      "source": "./src/XMLHttpRequestEventTarget.ts",
+      "deno": "./src/XMLHttpRequestEventTarget.ts",
+      "require": {
+        "types": "./cjs/XMLHttpRequestEventTarget.d.ts",
+        "default": "./cjs/XMLHttpRequestEventTarget.js"
+      },
+      "default": "./esm/XMLHttpRequestEventTarget.js"
+    },
+    "./xml-http-request-upload": {
+      "types": "./esm/XMLHttpRequestUpload.d.ts",
+      "source": "./src/XMLHttpRequestUpload.ts",
+      "deno": "./src/XMLHttpRequestUpload.ts",
+      "require": {
+        "types": "./cjs/XMLHttpRequestUpload.d.ts",
+        "default": "./cjs/XMLHttpRequestUpload.js"
+      },
+      "default": "./esm/XMLHttpRequestUpload.js"
+    }
   },
   "dependencies": {
     "dawm-core": "workspace:0.1.0-rc.9",

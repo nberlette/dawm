@@ -1,16 +1,63 @@
 #!/usr/bin/env -S deno -Aq --unstable-net
 
-// deno-lint-ignore-file no-import-prefix no-explicit-any
+// deno-lint-ignore-file no-import-prefix no-explicit-any no-unused-vars
 
 import process from "node:process";
-import { $ } from "jsr:@david/dax@0.44.1";
+import { $ } from "jsr:@david/dax@0.45.0";
 import * as semver from "jsr:@std/semver@1";
+import type { ReleaseType, SemVer } from "jsr:@std/semver@1";
+import pkg from "../packages/dawm/package.json" with { type: "json" };
+import {
+  AbstractConstructor,
+  AllEnumValues,
+  ClassLike,
+  Collapse,
+  FunctionKeys,
+  FunctionLike,
+  IsAbstractConstructor,
+  IsAny,
+  IsAnyOrNever,
+  IsNever,
+  Keys,
+  LiteralKeys,
+  ObjectFromEntries,
+  Printable,
+  PrivateConstructor,
+  PrototypeOf,
+  PublicConstructor,
+  Reshape,
+  ToAbstractConstructor,
+  ToPrivateConstructor,
+  ToPublicConstructor,
+} from "../packages/internal/src/types.ts";
 
-import pkg from "../deno.json" with { type: "json" };
+type VersionLike = string | SemVer | Version;
 
-type SemVer = semver.SemVer;
-type ReleaseType = semver.ReleaseType;
-type VersionLike = string | semver.SemVer | Version;
+type Id<T> = T;
+
+declare module "jsr:@std/semver@1" {
+  export type SemVerString<
+    Prefix extends string = never,
+    Prerelease extends string = never,
+    Build extends string = never,
+  > = `${IsAnyOrNever<
+    Prefix,
+    "",
+    Prefix
+  >}${number}.${number}.${number}${IsAnyOrNever<
+    Prerelease,
+    "",
+    `-${Prerelease}`
+  >}${IsAnyOrNever<Build, "", `+${Build}`>}`;
+
+  export interface SemVer {
+    increment(releaseType: ReleaseType): this;
+    toString<P extends string = "">(prefix?: P): SemVerString<P>;
+    toString(prefix?: string): string;
+  }
+}
+
+type Semver = Collapse<SemVer>;
 
 interface Version extends SemVer {
   increment(releaseType: ReleaseType): Version;
@@ -136,7 +183,7 @@ if (!newVersion) {
 $.logStep(`Preparing to bump version to ${newVersion}...`);
 
 const proceed = await $.maybeConfirm(
-  `Proceed to update deno.json, package.json, and Cargo.toml?`,
+  `Proceed to update deno.json, package manifests, and Cargo.toml?`,
   {
     default: true,
     noClear: true,
@@ -150,6 +197,7 @@ if (!proceed) {
 
 const ROOT_DIR = $.path("./").resolve();
 const DENO_JSON = ROOT_DIR.join("deno.json");
+const PACKAGES_DIR = ROOT_DIR.join("packages");
 
 let denoJson = await DENO_JSON.readText();
 denoJson = denoJson.replace(
@@ -159,6 +207,50 @@ denoJson = denoJson.replace(
 await DENO_JSON.writeText(denoJson);
 $.logStep("✔︎ bumped", `deno.json to ${newVersion}`);
 
+let packageCount = 0;
+for await (const entry of Deno.readDir(PACKAGES_DIR.toString())) {
+  if (!entry.isDirectory) continue;
+
+  const manifest = PACKAGES_DIR.join(entry.name, "package.json");
+  if (!await manifest.exists()) continue;
+
+  const pkgJson = JSON.parse(await manifest.readText()) as {
+    version?: string;
+    dependencies?: Record<string, string>;
+    peerDependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+
+  pkgJson.version = `${newVersion}`;
+
+  for (
+    const field of [
+      "dependencies",
+      "peerDependencies",
+      "devDependencies",
+    ] as const
+  ) {
+    const deps = pkgJson[field];
+    if (!deps) continue;
+    for (const dep of Object.keys(deps)) {
+      if (dep === "dawm" || dep.startsWith("dawm-")) {
+        deps[dep] = `workspace:${newVersion}`;
+      }
+    }
+  }
+
+  await manifest.writeText(`${JSON.stringify(pkgJson, null, 2)}\n`);
+  packageCount++;
+}
+$.logStep("✔︎ bumped", `${packageCount} package manifests to ${newVersion}`);
+
+const syncResult = await $`deno task sync:packages:apply`.printCommand(true);
+if (syncResult.code !== 0) {
+  $.logError("error", "Package sync failed after version bump.");
+  process.exit(syncResult.code);
+}
+$.logStep("✔︎ synced", "package manifests, READMEs, and LICENSE files");
+
 const NPM_DIR = ROOT_DIR.join("npm").resolve();
 const PKG_JSON = NPM_DIR.join("package.json");
 
@@ -167,8 +259,7 @@ pkgJson = pkgJson.replace(/(?<="version"\s*:\s*")(.+?)(?=")/, `${newVersion}`);
 await PKG_JSON.writeText(pkgJson);
 $.logStep("✔︎ bumped", `package.json to ${newVersion}`);
 
-const RUST_DIR = ROOT_DIR.join("rs_lib").resolve();
-const CARGO_TOML = RUST_DIR.join("Cargo.toml");
+const CARGO_TOML = ROOT_DIR.join("Cargo.toml");
 
 let cargoToml = await CARGO_TOML.readText();
 cargoToml = cargoToml.replace(
@@ -179,7 +270,10 @@ await CARGO_TOML.writeText(cargoToml);
 $.logStep("✔︎ bumped", `Cargo.toml to ${newVersion}`);
 
 $.logLight("Updating cargo lockfile ...");
-await $`cargo update -p dawm --manifest-path ${CARGO_TOML.toString()}`;
-$.logStep("✔︎ updated", `Cargo.lock for dawm to version ${newVersion}`);
+await $`cargo update --workspace --manifest-path ${CARGO_TOML.toString()}`;
+$.logStep(
+  "✔︎ updated",
+  `Cargo.lock for wasm parser workspace to version ${newVersion}`,
+);
 
 $.logStep("DONE", "Bumped all versions successfully!");

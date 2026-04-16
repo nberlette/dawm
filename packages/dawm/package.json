@@ -28,22 +28,87 @@
     "typescript",
     "xml"
   ],
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./cjs/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
   "files": [
     "src",
+    "esm",
+    "cjs",
     "README.md",
     "LICENSE"
   ],
   "exports": {
-    ".": "./src/index.ts",
-    "./global": "./src/global.ts",
-    "./guards": "./src/guards.ts",
-    "./options": "./src/options.ts",
-    "./parse": "./src/parse.ts",
-    "./serialize": "./src/serialize.ts",
-    "./types": "./src/types.ts"
+    ".": {
+      "types": "./esm/index.d.ts",
+      "source": "./src/index.ts",
+      "deno": "./src/index.ts",
+      "require": {
+        "types": "./cjs/index.d.ts",
+        "default": "./cjs/index.js"
+      },
+      "default": "./esm/index.js"
+    },
+    "./global": {
+      "types": "./esm/global.d.ts",
+      "source": "./src/global.ts",
+      "deno": "./src/global.ts",
+      "require": {
+        "types": "./cjs/global.d.ts",
+        "default": "./cjs/global.js"
+      },
+      "default": "./esm/global.js"
+    },
+    "./guards": {
+      "types": "./esm/guards.d.ts",
+      "source": "./src/guards.ts",
+      "deno": "./src/guards.ts",
+      "require": {
+        "types": "./cjs/guards.d.ts",
+        "default": "./cjs/guards.js"
+      },
+      "default": "./esm/guards.js"
+    },
+    "./options": {
+      "types": "./esm/options.d.ts",
+      "source": "./src/options.ts",
+      "deno": "./src/options.ts",
+      "require": {
+        "types": "./cjs/options.d.ts",
+        "default": "./cjs/options.js"
+      },
+      "default": "./esm/options.js"
+    },
+    "./parse": {
+      "types": "./esm/parse.d.ts",
+      "source": "./src/parse.ts",
+      "deno": "./src/parse.ts",
+      "require": {
+        "types": "./cjs/parse.d.ts",
+        "default": "./cjs/parse.js"
+      },
+      "default": "./esm/parse.js"
+    },
+    "./serialize": {
+      "types": "./esm/serialize.d.ts",
+      "source": "./src/serialize.ts",
+      "deno": "./src/serialize.ts",
+      "require": {
+        "types": "./cjs/serialize.d.ts",
+        "default": "./cjs/serialize.js"
+      },
+      "default": "./esm/serialize.js"
+    },
+    "./types": {
+      "types": "./esm/types.d.ts",
+      "source": "./src/types.ts",
+      "deno": "./src/types.ts",
+      "require": {
+        "types": "./cjs/types.d.ts",
+        "default": "./cjs/types.js"
+      },
+      "default": "./esm/types.js"
+    }
   },
   "dependencies": {
     "dawm-cache": "workspace:0.1.0-rc.9",

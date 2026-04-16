@@ -27,92 +27,787 @@
     "geometry",
     "typescript"
   ],
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./cjs/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
   "files": [
     "src",
+    "esm",
+    "cjs",
     "README.md",
     "LICENSE"
   ],
   "exports": {
-    ".": "./src/index.ts",
-    "./abstract-range": "./src/AbstractRange.ts",
-    "./attr": "./src/Attr.ts",
-    "./cdata-section": "./src/CDATASection.ts",
-    "./character-data": "./src/CharacterData.ts",
-    "./child-node": "./src/ChildNode.ts",
-    "./collections": "./src/collections/index.ts",
-    "./collections/dom-string-list": "./src/collections/DOMStringList.ts",
-    "./collections/dom-string-map": "./src/collections/DOMStringMap.ts",
-    "./collections/dom-token-list": "./src/collections/DOMTokenList.ts",
-    "./collections/html-collection": "./src/collections/HTMLCollection.ts",
-    "./collections/named-node-map": "./src/collections/NamedNodeMap.ts",
-    "./collections/node-list": "./src/collections/NodeList.ts",
-    "./comment": "./src/Comment.ts",
-    "./document": "./src/Document.ts",
-    "./document-fragment": "./src/DocumentFragment.ts",
-    "./document-or-shadow-root": "./src/DocumentOrShadowRoot.ts",
-    "./document-type": "./src/DocumentType.ts",
-    "./dom-exception": "./src/DOMException.ts",
-    "./dom-implementation": "./src/DOMImplementation.ts",
-    "./dom-parser": "./src/DOMParser.ts",
-    "./element": "./src/Element.ts",
-    "./events": "./src/events/index.ts",
-    "./events/before-unload-event": "./src/events/BeforeUnloadEvent.ts",
-    "./events/clipboard-event": "./src/events/ClipboardEvent.ts",
-    "./events/close-event": "./src/events/CloseEvent.ts",
-    "./events/custom-event": "./src/events/CustomEvent.ts",
-    "./events/data-transfer": "./src/events/DataTransfer.ts",
-    "./events/data-transfer-item": "./src/events/DataTransferItem.ts",
-    "./events/data-transfer-item-list": "./src/events/DataTransferItemList.ts",
-    "./events/drag-event": "./src/events/DragEvent.ts",
-    "./events/error-event": "./src/events/ErrorEvent.ts",
-    "./events/event": "./src/events/Event.ts",
-    "./events/event-attributes": "./src/events/EventAttributes.ts",
-    "./events/event-handlers": "./src/events/EventHandlers.ts",
-    "./events/event-target": "./src/events/EventTarget.ts",
-    "./events/file-list": "./src/events/FileList.ts",
-    "./events/focus-event": "./src/events/FocusEvent.ts",
-    "./events/keyboard-event": "./src/events/KeyboardEvent.ts",
-    "./events/mouse-event": "./src/events/MouseEvent.ts",
-    "./events/mutation-event": "./src/events/MutationEvent.ts",
-    "./events/pointer-event": "./src/events/PointerEvent.ts",
-    "./events/progress-event": "./src/events/ProgressEvent.ts",
-    "./events/promise-rejection-event": "./src/events/PromiseRejectionEvent.ts",
-    "./events/security-policy-violation-event": "./src/events/SecurityPolicyViolationEvent.ts",
-    "./events/submit-event": "./src/events/SubmitEvent.ts",
-    "./events/toggle-event": "./src/events/ToggleEvent.ts",
-    "./events/touch-event": "./src/events/TouchEvent.ts",
-    "./events/transition-event": "./src/events/TransitionEvent.ts",
-    "./events/typed-event-target": "./src/events/TypedEventTarget.ts",
-    "./events/types": "./src/events/types.ts",
-    "./events/ui-event": "./src/events/UIEvent.ts",
-    "./events/unload-event": "./src/events/UnloadEvent.ts",
-    "./geometry": "./src/geometry/index.ts",
-    "./geometry/dom-matrix": "./src/geometry/DOMMatrix.ts",
-    "./geometry/dom-matrix-read-only": "./src/geometry/DOMMatrixReadOnly.ts",
-    "./geometry/dom-point": "./src/geometry/DOMPoint.ts",
-    "./geometry/dom-point-read-only": "./src/geometry/DOMPointReadOnly.ts",
-    "./geometry/dom-quad": "./src/geometry/DOMQuad.ts",
-    "./geometry/dom-rect": "./src/geometry/DOMRect.ts",
-    "./geometry/dom-rect-read-only": "./src/geometry/DOMRectReadOnly.ts",
-    "./node": "./src/Node.ts",
-    "./node-filter": "./src/NodeFilter.ts",
-    "./node-iterator": "./src/NodeIterator.ts",
-    "./non-document-type-child-node": "./src/NonDocumentTypeChildNode.ts",
-    "./non-element-parent-node": "./src/NonElementParentNode.ts",
-    "./options": "./src/options.ts",
-    "./parent-node": "./src/ParentNode.ts",
-    "./parse": "./src/parse.ts",
-    "./processing-instruction": "./src/ProcessingInstruction.ts",
-    "./range": "./src/Range.ts",
-    "./serialize": "./src/serialize.ts",
-    "./shadow-root": "./src/ShadowRoot.ts",
-    "./static-range": "./src/StaticRange.ts",
-    "./text": "./src/Text.ts",
-    "./tree-walker": "./src/TreeWalker.ts",
-    "./types": "./src/types.ts"
+    ".": {
+      "types": "./esm/index.d.ts",
+      "source": "./src/index.ts",
+      "deno": "./src/index.ts",
+      "require": {
+        "types": "./cjs/index.d.ts",
+        "default": "./cjs/index.js"
+      },
+      "default": "./esm/index.js"
+    },
+    "./abstract-range": {
+      "types": "./esm/ranges/AbstractRange.d.ts",
+      "source": "./src/ranges/AbstractRange.ts",
+      "deno": "./src/ranges/AbstractRange.ts",
+      "require": {
+        "types": "./cjs/ranges/AbstractRange.d.ts",
+        "default": "./cjs/ranges/AbstractRange.js"
+      },
+      "default": "./esm/ranges/AbstractRange.js"
+    },
+    "./attr": {
+      "types": "./esm/Attr.d.ts",
+      "source": "./src/Attr.ts",
+      "deno": "./src/Attr.ts",
+      "require": {
+        "types": "./cjs/Attr.d.ts",
+        "default": "./cjs/Attr.js"
+      },
+      "default": "./esm/Attr.js"
+    },
+    "./cdata-section": {
+      "types": "./esm/CDATASection.d.ts",
+      "source": "./src/CDATASection.ts",
+      "deno": "./src/CDATASection.ts",
+      "require": {
+        "types": "./cjs/CDATASection.d.ts",
+        "default": "./cjs/CDATASection.js"
+      },
+      "default": "./esm/CDATASection.js"
+    },
+    "./character-data": {
+      "types": "./esm/CharacterData.d.ts",
+      "source": "./src/CharacterData.ts",
+      "deno": "./src/CharacterData.ts",
+      "require": {
+        "types": "./cjs/CharacterData.d.ts",
+        "default": "./cjs/CharacterData.js"
+      },
+      "default": "./esm/CharacterData.js"
+    },
+    "./child-node": {
+      "types": "./esm/ChildNode.d.ts",
+      "source": "./src/ChildNode.ts",
+      "deno": "./src/ChildNode.ts",
+      "require": {
+        "types": "./cjs/ChildNode.d.ts",
+        "default": "./cjs/ChildNode.js"
+      },
+      "default": "./esm/ChildNode.js"
+    },
+    "./collections": {
+      "types": "./esm/collections/index.d.ts",
+      "source": "./src/collections/index.ts",
+      "deno": "./src/collections/index.ts",
+      "require": {
+        "types": "./cjs/collections/index.d.ts",
+        "default": "./cjs/collections/index.js"
+      },
+      "default": "./esm/collections/index.js"
+    },
+    "./collections/dom-string-list": {
+      "types": "./esm/collections/DOMStringList.d.ts",
+      "source": "./src/collections/DOMStringList.ts",
+      "deno": "./src/collections/DOMStringList.ts",
+      "require": {
+        "types": "./cjs/collections/DOMStringList.d.ts",
+        "default": "./cjs/collections/DOMStringList.js"
+      },
+      "default": "./esm/collections/DOMStringList.js"
+    },
+    "./collections/dom-string-map": {
+      "types": "./esm/collections/DOMStringMap.d.ts",
+      "source": "./src/collections/DOMStringMap.ts",
+      "deno": "./src/collections/DOMStringMap.ts",
+      "require": {
+        "types": "./cjs/collections/DOMStringMap.d.ts",
+        "default": "./cjs/collections/DOMStringMap.js"
+      },
+      "default": "./esm/collections/DOMStringMap.js"
+    },
+    "./collections/dom-token-list": {
+      "types": "./esm/collections/DOMTokenList.d.ts",
+      "source": "./src/collections/DOMTokenList.ts",
+      "deno": "./src/collections/DOMTokenList.ts",
+      "require": {
+        "types": "./cjs/collections/DOMTokenList.d.ts",
+        "default": "./cjs/collections/DOMTokenList.js"
+      },
+      "default": "./esm/collections/DOMTokenList.js"
+    },
+    "./collections/html-collection": {
+      "types": "./esm/collections/HTMLCollection.d.ts",
+      "source": "./src/collections/HTMLCollection.ts",
+      "deno": "./src/collections/HTMLCollection.ts",
+      "require": {
+        "types": "./cjs/collections/HTMLCollection.d.ts",
+        "default": "./cjs/collections/HTMLCollection.js"
+      },
+      "default": "./esm/collections/HTMLCollection.js"
+    },
+    "./collections/named-node-map": {
+      "types": "./esm/collections/NamedNodeMap.d.ts",
+      "source": "./src/collections/NamedNodeMap.ts",
+      "deno": "./src/collections/NamedNodeMap.ts",
+      "require": {
+        "types": "./cjs/collections/NamedNodeMap.d.ts",
+        "default": "./cjs/collections/NamedNodeMap.js"
+      },
+      "default": "./esm/collections/NamedNodeMap.js"
+    },
+    "./collections/node-list": {
+      "types": "./esm/collections/NodeList.d.ts",
+      "source": "./src/collections/NodeList.ts",
+      "deno": "./src/collections/NodeList.ts",
+      "require": {
+        "types": "./cjs/collections/NodeList.d.ts",
+        "default": "./cjs/collections/NodeList.js"
+      },
+      "default": "./esm/collections/NodeList.js"
+    },
+    "./comment": {
+      "types": "./esm/Comment.d.ts",
+      "source": "./src/Comment.ts",
+      "deno": "./src/Comment.ts",
+      "require": {
+        "types": "./cjs/Comment.d.ts",
+        "default": "./cjs/Comment.js"
+      },
+      "default": "./esm/Comment.js"
+    },
+    "./document": {
+      "types": "./esm/Document.d.ts",
+      "source": "./src/Document.ts",
+      "deno": "./src/Document.ts",
+      "require": {
+        "types": "./cjs/Document.d.ts",
+        "default": "./cjs/Document.js"
+      },
+      "default": "./esm/Document.js"
+    },
+    "./document-fragment": {
+      "types": "./esm/DocumentFragment.d.ts",
+      "source": "./src/DocumentFragment.ts",
+      "deno": "./src/DocumentFragment.ts",
+      "require": {
+        "types": "./cjs/DocumentFragment.d.ts",
+        "default": "./cjs/DocumentFragment.js"
+      },
+      "default": "./esm/DocumentFragment.js"
+    },
+    "./document-or-shadow-root": {
+      "types": "./esm/DocumentOrShadowRoot.d.ts",
+      "source": "./src/DocumentOrShadowRoot.ts",
+      "deno": "./src/DocumentOrShadowRoot.ts",
+      "require": {
+        "types": "./cjs/DocumentOrShadowRoot.d.ts",
+        "default": "./cjs/DocumentOrShadowRoot.js"
+      },
+      "default": "./esm/DocumentOrShadowRoot.js"
+    },
+    "./document-type": {
+      "types": "./esm/DocumentType.d.ts",
+      "source": "./src/DocumentType.ts",
+      "deno": "./src/DocumentType.ts",
+      "require": {
+        "types": "./cjs/DocumentType.d.ts",
+        "default": "./cjs/DocumentType.js"
+      },
+      "default": "./esm/DocumentType.js"
+    },
+    "./dom-exception": {
+      "types": "./esm/DOMException.d.ts",
+      "source": "./src/DOMException.ts",
+      "deno": "./src/DOMException.ts",
+      "require": {
+        "types": "./cjs/DOMException.d.ts",
+        "default": "./cjs/DOMException.js"
+      },
+      "default": "./esm/DOMException.js"
+    },
+    "./dom-implementation": {
+      "types": "./esm/DOMImplementation.d.ts",
+      "source": "./src/DOMImplementation.ts",
+      "deno": "./src/DOMImplementation.ts",
+      "require": {
+        "types": "./cjs/DOMImplementation.d.ts",
+        "default": "./cjs/DOMImplementation.js"
+      },
+      "default": "./esm/DOMImplementation.js"
+    },
+    "./dom-parser": {
+      "types": "./esm/DOMParser.d.ts",
+      "source": "./src/DOMParser.ts",
+      "deno": "./src/DOMParser.ts",
+      "require": {
+        "types": "./cjs/DOMParser.d.ts",
+        "default": "./cjs/DOMParser.js"
+      },
+      "default": "./esm/DOMParser.js"
+    },
+    "./element": {
+      "types": "./esm/Element.d.ts",
+      "source": "./src/Element.ts",
+      "deno": "./src/Element.ts",
+      "require": {
+        "types": "./cjs/Element.d.ts",
+        "default": "./cjs/Element.js"
+      },
+      "default": "./esm/Element.js"
+    },
+    "./events": {
+      "types": "./esm/events/index.d.ts",
+      "source": "./src/events/index.ts",
+      "deno": "./src/events/index.ts",
+      "require": {
+        "types": "./cjs/events/index.d.ts",
+        "default": "./cjs/events/index.js"
+      },
+      "default": "./esm/events/index.js"
+    },
+    "./events/before-unload-event": {
+      "types": "./esm/events/BeforeUnloadEvent.d.ts",
+      "source": "./src/events/BeforeUnloadEvent.ts",
+      "deno": "./src/events/BeforeUnloadEvent.ts",
+      "require": {
+        "types": "./cjs/events/BeforeUnloadEvent.d.ts",
+        "default": "./cjs/events/BeforeUnloadEvent.js"
+      },
+      "default": "./esm/events/BeforeUnloadEvent.js"
+    },
+    "./events/clipboard-event": {
+      "types": "./esm/events/ClipboardEvent.d.ts",
+      "source": "./src/events/ClipboardEvent.ts",
+      "deno": "./src/events/ClipboardEvent.ts",
+      "require": {
+        "types": "./cjs/events/ClipboardEvent.d.ts",
+        "default": "./cjs/events/ClipboardEvent.js"
+      },
+      "default": "./esm/events/ClipboardEvent.js"
+    },
+    "./events/close-event": {
+      "types": "./esm/events/CloseEvent.d.ts",
+      "source": "./src/events/CloseEvent.ts",
+      "deno": "./src/events/CloseEvent.ts",
+      "require": {
+        "types": "./cjs/events/CloseEvent.d.ts",
+        "default": "./cjs/events/CloseEvent.js"
+      },
+      "default": "./esm/events/CloseEvent.js"
+    },
+    "./events/custom-event": {
+      "types": "./esm/events/CustomEvent.d.ts",
+      "source": "./src/events/CustomEvent.ts",
+      "deno": "./src/events/CustomEvent.ts",
+      "require": {
+        "types": "./cjs/events/CustomEvent.d.ts",
+        "default": "./cjs/events/CustomEvent.js"
+      },
+      "default": "./esm/events/CustomEvent.js"
+    },
+    "./events/data-transfer": {
+      "types": "./esm/events/DataTransfer.d.ts",
+      "source": "./src/events/DataTransfer.ts",
+      "deno": "./src/events/DataTransfer.ts",
+      "require": {
+        "types": "./cjs/events/DataTransfer.d.ts",
+        "default": "./cjs/events/DataTransfer.js"
+      },
+      "default": "./esm/events/DataTransfer.js"
+    },
+    "./events/data-transfer-item": {
+      "types": "./esm/events/DataTransferItem.d.ts",
+      "source": "./src/events/DataTransferItem.ts",
+      "deno": "./src/events/DataTransferItem.ts",
+      "require": {
+        "types": "./cjs/events/DataTransferItem.d.ts",
+        "default": "./cjs/events/DataTransferItem.js"
+      },
+      "default": "./esm/events/DataTransferItem.js"
+    },
+    "./events/data-transfer-item-list": {
+      "types": "./esm/events/DataTransferItemList.d.ts",
+      "source": "./src/events/DataTransferItemList.ts",
+      "deno": "./src/events/DataTransferItemList.ts",
+      "require": {
+        "types": "./cjs/events/DataTransferItemList.d.ts",
+        "default": "./cjs/events/DataTransferItemList.js"
+      },
+      "default": "./esm/events/DataTransferItemList.js"
+    },
+    "./events/drag-event": {
+      "types": "./esm/events/DragEvent.d.ts",
+      "source": "./src/events/DragEvent.ts",
+      "deno": "./src/events/DragEvent.ts",
+      "require": {
+        "types": "./cjs/events/DragEvent.d.ts",
+        "default": "./cjs/events/DragEvent.js"
+      },
+      "default": "./esm/events/DragEvent.js"
+    },
+    "./events/error-event": {
+      "types": "./esm/events/ErrorEvent.d.ts",
+      "source": "./src/events/ErrorEvent.ts",
+      "deno": "./src/events/ErrorEvent.ts",
+      "require": {
+        "types": "./cjs/events/ErrorEvent.d.ts",
+        "default": "./cjs/events/ErrorEvent.js"
+      },
+      "default": "./esm/events/ErrorEvent.js"
+    },
+    "./events/event": {
+      "types": "./esm/events/Event.d.ts",
+      "source": "./src/events/Event.ts",
+      "deno": "./src/events/Event.ts",
+      "require": {
+        "types": "./cjs/events/Event.d.ts",
+        "default": "./cjs/events/Event.js"
+      },
+      "default": "./esm/events/Event.js"
+    },
+    "./events/event-attributes": {
+      "types": "./esm/events/EventAttributes.d.ts",
+      "source": "./src/events/EventAttributes.ts",
+      "deno": "./src/events/EventAttributes.ts",
+      "require": {
+        "types": "./cjs/events/EventAttributes.d.ts",
+        "default": "./cjs/events/EventAttributes.js"
+      },
+      "default": "./esm/events/EventAttributes.js"
+    },
+    "./events/event-handlers": {
+      "types": "./esm/events/EventHandlers.d.ts",
+      "source": "./src/events/EventHandlers.ts",
+      "deno": "./src/events/EventHandlers.ts",
+      "require": {
+        "types": "./cjs/events/EventHandlers.d.ts",
+        "default": "./cjs/events/EventHandlers.js"
+      },
+      "default": "./esm/events/EventHandlers.js"
+    },
+    "./events/event-target": {
+      "types": "./esm/events/EventTarget.d.ts",
+      "source": "./src/events/EventTarget.ts",
+      "deno": "./src/events/EventTarget.ts",
+      "require": {
+        "types": "./cjs/events/EventTarget.d.ts",
+        "default": "./cjs/events/EventTarget.js"
+      },
+      "default": "./esm/events/EventTarget.js"
+    },
+    "./events/file-list": {
+      "types": "./esm/events/FileList.d.ts",
+      "source": "./src/events/FileList.ts",
+      "deno": "./src/events/FileList.ts",
+      "require": {
+        "types": "./cjs/events/FileList.d.ts",
+        "default": "./cjs/events/FileList.js"
+      },
+      "default": "./esm/events/FileList.js"
+    },
+    "./events/focus-event": {
+      "types": "./esm/events/FocusEvent.d.ts",
+      "source": "./src/events/FocusEvent.ts",
+      "deno": "./src/events/FocusEvent.ts",
+      "require": {
+        "types": "./cjs/events/FocusEvent.d.ts",
+        "default": "./cjs/events/FocusEvent.js"
+      },
+      "default": "./esm/events/FocusEvent.js"
+    },
+    "./events/keyboard-event": {
+      "types": "./esm/events/KeyboardEvent.d.ts",
+      "source": "./src/events/KeyboardEvent.ts",
+      "deno": "./src/events/KeyboardEvent.ts",
+      "require": {
+        "types": "./cjs/events/KeyboardEvent.d.ts",
+        "default": "./cjs/events/KeyboardEvent.js"
+      },
+      "default": "./esm/events/KeyboardEvent.js"
+    },
+    "./events/mouse-event": {
+      "types": "./esm/events/MouseEvent.d.ts",
+      "source": "./src/events/MouseEvent.ts",
+      "deno": "./src/events/MouseEvent.ts",
+      "require": {
+        "types": "./cjs/events/MouseEvent.d.ts",
+        "default": "./cjs/events/MouseEvent.js"
+      },
+      "default": "./esm/events/MouseEvent.js"
+    },
+    "./events/mutation-event": {
+      "types": "./esm/events/MutationEvent.d.ts",
+      "source": "./src/events/MutationEvent.ts",
+      "deno": "./src/events/MutationEvent.ts",
+      "require": {
+        "types": "./cjs/events/MutationEvent.d.ts",
+        "default": "./cjs/events/MutationEvent.js"
+      },
+      "default": "./esm/events/MutationEvent.js"
+    },
+    "./events/pointer-event": {
+      "types": "./esm/events/PointerEvent.d.ts",
+      "source": "./src/events/PointerEvent.ts",
+      "deno": "./src/events/PointerEvent.ts",
+      "require": {
+        "types": "./cjs/events/PointerEvent.d.ts",
+        "default": "./cjs/events/PointerEvent.js"
+      },
+      "default": "./esm/events/PointerEvent.js"
+    },
+    "./events/progress-event": {
+      "types": "./esm/events/ProgressEvent.d.ts",
+      "source": "./src/events/ProgressEvent.ts",
+      "deno": "./src/events/ProgressEvent.ts",
+      "require": {
+        "types": "./cjs/events/ProgressEvent.d.ts",
+        "default": "./cjs/events/ProgressEvent.js"
+      },
+      "default": "./esm/events/ProgressEvent.js"
+    },
+    "./events/promise-rejection-event": {
+      "types": "./esm/events/PromiseRejectionEvent.d.ts",
+      "source": "./src/events/PromiseRejectionEvent.ts",
+      "deno": "./src/events/PromiseRejectionEvent.ts",
+      "require": {
+        "types": "./cjs/events/PromiseRejectionEvent.d.ts",
+        "default": "./cjs/events/PromiseRejectionEvent.js"
+      },
+      "default": "./esm/events/PromiseRejectionEvent.js"
+    },
+    "./events/security-policy-violation-event": {
+      "types": "./esm/events/SecurityPolicyViolationEvent.d.ts",
+      "source": "./src/events/SecurityPolicyViolationEvent.ts",
+      "deno": "./src/events/SecurityPolicyViolationEvent.ts",
+      "require": {
+        "types": "./cjs/events/SecurityPolicyViolationEvent.d.ts",
+        "default": "./cjs/events/SecurityPolicyViolationEvent.js"
+      },
+      "default": "./esm/events/SecurityPolicyViolationEvent.js"
+    },
+    "./events/submit-event": {
+      "types": "./esm/events/SubmitEvent.d.ts",
+      "source": "./src/events/SubmitEvent.ts",
+      "deno": "./src/events/SubmitEvent.ts",
+      "require": {
+        "types": "./cjs/events/SubmitEvent.d.ts",
+        "default": "./cjs/events/SubmitEvent.js"
+      },
+      "default": "./esm/events/SubmitEvent.js"
+    },
+    "./events/toggle-event": {
+      "types": "./esm/events/ToggleEvent.d.ts",
+      "source": "./src/events/ToggleEvent.ts",
+      "deno": "./src/events/ToggleEvent.ts",
+      "require": {
+        "types": "./cjs/events/ToggleEvent.d.ts",
+        "default": "./cjs/events/ToggleEvent.js"
+      },
+      "default": "./esm/events/ToggleEvent.js"
+    },
+    "./events/touch-event": {
+      "types": "./esm/events/TouchEvent.d.ts",
+      "source": "./src/events/TouchEvent.ts",
+      "deno": "./src/events/TouchEvent.ts",
+      "require": {
+        "types": "./cjs/events/TouchEvent.d.ts",
+        "default": "./cjs/events/TouchEvent.js"
+      },
+      "default": "./esm/events/TouchEvent.js"
+    },
+    "./events/transition-event": {
+      "types": "./esm/events/TransitionEvent.d.ts",
+      "source": "./src/events/TransitionEvent.ts",
+      "deno": "./src/events/TransitionEvent.ts",
+      "require": {
+        "types": "./cjs/events/TransitionEvent.d.ts",
+        "default": "./cjs/events/TransitionEvent.js"
+      },
+      "default": "./esm/events/TransitionEvent.js"
+    },
+    "./events/typed-event-target": {
+      "types": "./esm/events/TypedEventTarget.d.ts",
+      "source": "./src/events/TypedEventTarget.ts",
+      "deno": "./src/events/TypedEventTarget.ts",
+      "require": {
+        "types": "./cjs/events/TypedEventTarget.d.ts",
+        "default": "./cjs/events/TypedEventTarget.js"
+      },
+      "default": "./esm/events/TypedEventTarget.js"
+    },
+    "./events/types": {
+      "types": "./esm/events/types.d.ts",
+      "source": "./src/events/types.ts",
+      "deno": "./src/events/types.ts",
+      "require": {
+        "types": "./cjs/events/types.d.ts",
+        "default": "./cjs/events/types.js"
+      },
+      "default": "./esm/events/types.js"
+    },
+    "./events/ui-event": {
+      "types": "./esm/events/UIEvent.d.ts",
+      "source": "./src/events/UIEvent.ts",
+      "deno": "./src/events/UIEvent.ts",
+      "require": {
+        "types": "./cjs/events/UIEvent.d.ts",
+        "default": "./cjs/events/UIEvent.js"
+      },
+      "default": "./esm/events/UIEvent.js"
+    },
+    "./events/unload-event": {
+      "types": "./esm/events/UnloadEvent.d.ts",
+      "source": "./src/events/UnloadEvent.ts",
+      "deno": "./src/events/UnloadEvent.ts",
+      "require": {
+        "types": "./cjs/events/UnloadEvent.d.ts",
+        "default": "./cjs/events/UnloadEvent.js"
+      },
+      "default": "./esm/events/UnloadEvent.js"
+    },
+    "./geometry": {
+      "types": "./esm/geometry/index.d.ts",
+      "source": "./src/geometry/index.ts",
+      "deno": "./src/geometry/index.ts",
+      "require": {
+        "types": "./cjs/geometry/index.d.ts",
+        "default": "./cjs/geometry/index.js"
+      },
+      "default": "./esm/geometry/index.js"
+    },
+    "./geometry/dom-matrix": {
+      "types": "./esm/geometry/DOMMatrix.d.ts",
+      "source": "./src/geometry/DOMMatrix.ts",
+      "deno": "./src/geometry/DOMMatrix.ts",
+      "require": {
+        "types": "./cjs/geometry/DOMMatrix.d.ts",
+        "default": "./cjs/geometry/DOMMatrix.js"
+      },
+      "default": "./esm/geometry/DOMMatrix.js"
+    },
+    "./geometry/dom-matrix-read-only": {
+      "types": "./esm/geometry/DOMMatrixReadOnly.d.ts",
+      "source": "./src/geometry/DOMMatrixReadOnly.ts",
+      "deno": "./src/geometry/DOMMatrixReadOnly.ts",
+      "require": {
+        "types": "./cjs/geometry/DOMMatrixReadOnly.d.ts",
+        "default": "./cjs/geometry/DOMMatrixReadOnly.js"
+      },
+      "default": "./esm/geometry/DOMMatrixReadOnly.js"
+    },
+    "./geometry/dom-point": {
+      "types": "./esm/geometry/DOMPoint.d.ts",
+      "source": "./src/geometry/DOMPoint.ts",
+      "deno": "./src/geometry/DOMPoint.ts",
+      "require": {
+        "types": "./cjs/geometry/DOMPoint.d.ts",
+        "default": "./cjs/geometry/DOMPoint.js"
+      },
+      "default": "./esm/geometry/DOMPoint.js"
+    },
+    "./geometry/dom-point-read-only": {
+      "types": "./esm/geometry/DOMPointReadOnly.d.ts",
+      "source": "./src/geometry/DOMPointReadOnly.ts",
+      "deno": "./src/geometry/DOMPointReadOnly.ts",
+      "require": {
+        "types": "./cjs/geometry/DOMPointReadOnly.d.ts",
+        "default": "./cjs/geometry/DOMPointReadOnly.js"
+      },
+      "default": "./esm/geometry/DOMPointReadOnly.js"
+    },
+    "./geometry/dom-quad": {
+      "types": "./esm/geometry/DOMQuad.d.ts",
+      "source": "./src/geometry/DOMQuad.ts",
+      "deno": "./src/geometry/DOMQuad.ts",
+      "require": {
+        "types": "./cjs/geometry/DOMQuad.d.ts",
+        "default": "./cjs/geometry/DOMQuad.js"
+      },
+      "default": "./esm/geometry/DOMQuad.js"
+    },
+    "./geometry/dom-rect": {
+      "types": "./esm/geometry/DOMRect.d.ts",
+      "source": "./src/geometry/DOMRect.ts",
+      "deno": "./src/geometry/DOMRect.ts",
+      "require": {
+        "types": "./cjs/geometry/DOMRect.d.ts",
+        "default": "./cjs/geometry/DOMRect.js"
+      },
+      "default": "./esm/geometry/DOMRect.js"
+    },
+    "./geometry/dom-rect-read-only": {
+      "types": "./esm/geometry/DOMRectReadOnly.d.ts",
+      "source": "./src/geometry/DOMRectReadOnly.ts",
+      "deno": "./src/geometry/DOMRectReadOnly.ts",
+      "require": {
+        "types": "./cjs/geometry/DOMRectReadOnly.d.ts",
+        "default": "./cjs/geometry/DOMRectReadOnly.js"
+      },
+      "default": "./esm/geometry/DOMRectReadOnly.js"
+    },
+    "./node": {
+      "types": "./esm/Node.d.ts",
+      "source": "./src/Node.ts",
+      "deno": "./src/Node.ts",
+      "require": {
+        "types": "./cjs/Node.d.ts",
+        "default": "./cjs/Node.js"
+      },
+      "default": "./esm/Node.js"
+    },
+    "./node-filter": {
+      "types": "./esm/NodeFilter.d.ts",
+      "source": "./src/NodeFilter.ts",
+      "deno": "./src/NodeFilter.ts",
+      "require": {
+        "types": "./cjs/NodeFilter.d.ts",
+        "default": "./cjs/NodeFilter.js"
+      },
+      "default": "./esm/NodeFilter.js"
+    },
+    "./node-iterator": {
+      "types": "./esm/NodeIterator.d.ts",
+      "source": "./src/NodeIterator.ts",
+      "deno": "./src/NodeIterator.ts",
+      "require": {
+        "types": "./cjs/NodeIterator.d.ts",
+        "default": "./cjs/NodeIterator.js"
+      },
+      "default": "./esm/NodeIterator.js"
+    },
+    "./non-document-type-child-node": {
+      "types": "./esm/NonDocumentTypeChildNode.d.ts",
+      "source": "./src/NonDocumentTypeChildNode.ts",
+      "deno": "./src/NonDocumentTypeChildNode.ts",
+      "require": {
+        "types": "./cjs/NonDocumentTypeChildNode.d.ts",
+        "default": "./cjs/NonDocumentTypeChildNode.js"
+      },
+      "default": "./esm/NonDocumentTypeChildNode.js"
+    },
+    "./non-element-parent-node": {
+      "types": "./esm/NonElementParentNode.d.ts",
+      "source": "./src/NonElementParentNode.ts",
+      "deno": "./src/NonElementParentNode.ts",
+      "require": {
+        "types": "./cjs/NonElementParentNode.d.ts",
+        "default": "./cjs/NonElementParentNode.js"
+      },
+      "default": "./esm/NonElementParentNode.js"
+    },
+    "./options": {
+      "types": "./esm/options.d.ts",
+      "source": "./src/options.ts",
+      "deno": "./src/options.ts",
+      "require": {
+        "types": "./cjs/options.d.ts",
+        "default": "./cjs/options.js"
+      },
+      "default": "./esm/options.js"
+    },
+    "./parent-node": {
+      "types": "./esm/ParentNode.d.ts",
+      "source": "./src/ParentNode.ts",
+      "deno": "./src/ParentNode.ts",
+      "require": {
+        "types": "./cjs/ParentNode.d.ts",
+        "default": "./cjs/ParentNode.js"
+      },
+      "default": "./esm/ParentNode.js"
+    },
+    "./parse": {
+      "types": "./esm/parse.d.ts",
+      "source": "./src/parse.ts",
+      "deno": "./src/parse.ts",
+      "require": {
+        "types": "./cjs/parse.d.ts",
+        "default": "./cjs/parse.js"
+      },
+      "default": "./esm/parse.js"
+    },
+    "./processing-instruction": {
+      "types": "./esm/ProcessingInstruction.d.ts",
+      "source": "./src/ProcessingInstruction.ts",
+      "deno": "./src/ProcessingInstruction.ts",
+      "require": {
+        "types": "./cjs/ProcessingInstruction.d.ts",
+        "default": "./cjs/ProcessingInstruction.js"
+      },
+      "default": "./esm/ProcessingInstruction.js"
+    },
+    "./range": {
+      "types": "./esm/ranges/Range.d.ts",
+      "source": "./src/ranges/Range.ts",
+      "deno": "./src/ranges/Range.ts",
+      "require": {
+        "types": "./cjs/ranges/Range.d.ts",
+        "default": "./cjs/ranges/Range.js"
+      },
+      "default": "./esm/ranges/Range.js"
+    },
+    "./serialize": {
+      "types": "./esm/serialize.d.ts",
+      "source": "./src/serialize.ts",
+      "deno": "./src/serialize.ts",
+      "require": {
+        "types": "./cjs/serialize.d.ts",
+        "default": "./cjs/serialize.js"
+      },
+      "default": "./esm/serialize.js"
+    },
+    "./shadow-root": {
+      "types": "./esm/ShadowRoot.d.ts",
+      "source": "./src/ShadowRoot.ts",
+      "deno": "./src/ShadowRoot.ts",
+      "require": {
+        "types": "./cjs/ShadowRoot.d.ts",
+        "default": "./cjs/ShadowRoot.js"
+      },
+      "default": "./esm/ShadowRoot.js"
+    },
+    "./static-range": {
+      "types": "./esm/ranges/StaticRange.d.ts",
+      "source": "./src/ranges/StaticRange.ts",
+      "deno": "./src/ranges/StaticRange.ts",
+      "require": {
+        "types": "./cjs/ranges/StaticRange.d.ts",
+        "default": "./cjs/ranges/StaticRange.js"
+      },
+      "default": "./esm/ranges/StaticRange.js"
+    },
+    "./text": {
+      "types": "./esm/Text.d.ts",
+      "source": "./src/Text.ts",
+      "deno": "./src/Text.ts",
+      "require": {
+        "types": "./cjs/Text.d.ts",
+        "default": "./cjs/Text.js"
+      },
+      "default": "./esm/Text.js"
+    },
+    "./tree-walker": {
+      "types": "./esm/TreeWalker.d.ts",
+      "source": "./src/TreeWalker.ts",
+      "deno": "./src/TreeWalker.ts",
+      "require": {
+        "types": "./cjs/TreeWalker.d.ts",
+        "default": "./cjs/TreeWalker.js"
+      },
+      "default": "./esm/TreeWalker.js"
+    },
+    "./types": {
+      "types": "./esm/types.d.ts",
+      "source": "./src/types.ts",
+      "deno": "./src/types.ts",
+      "require": {
+        "types": "./cjs/types.d.ts",
+        "default": "./cjs/types.js"
+      },
+      "default": "./esm/types.js"
+    }
   },
   "dependencies": {
     "dawm-css": "workspace:0.1.0-rc.9",
