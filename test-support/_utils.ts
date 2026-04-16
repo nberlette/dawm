@@ -1,7 +1,7 @@
 import assert from "node:assert";
-import { DOMException } from "../src/core/DOMException.ts";
-import { HTMLDocument } from "../src/html/HTMLDocument.ts";
-import { XMLDocument } from "../src/xml/XMLDocument.ts";
+import { DOMException } from "../packages/core/src/DOMException.ts";
+import { HTMLDocument } from "../packages/html/src/HTMLDocument.ts";
+import { XMLDocument } from "../packages/xml/src/XMLDocument.ts";
 
 const originalFetch = globalThis.fetch;
 
