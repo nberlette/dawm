@@ -1,0 +1,30 @@
+[package]
+name = "dawm-markup-parser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "dawm_markup_parser"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[features]
+default = ["html", "xml"]
+html = []
+xml = []
+
+[dependencies]
+html5ever.workspace = true
+markup5ever.workspace = true
+xml5ever.workspace = true
+tendril.workspace = true
+serde.workspace = true
+serde_repr.workspace = true
+serde-wasm-bindgen.workspace = true
+wasm-bindgen.workspace = true
+moos.workspace = true
+derive_more.workspace = true

@@ -37,6 +37,25 @@
         "typescript"
       ]
     },
+    "dom": {
+      "description": "Shared DOM and XML-facing primitives that can be consumed without depending on the full dawm-core facade.",
+      "keywords": [
+        "dawm",
+        "dom",
+        "xml",
+        "serializer",
+        "document",
+        "typescript"
+      ],
+      "exports": {
+        ".": "./src/index.ts",
+        "./xml-document": "./src/XMLDocument.ts",
+        "./xml-serializer": "./src/XMLSerializer.ts"
+      },
+      "dependencies": {
+        "dawm-core": "workspace:0.1.0-rc.9"
+      }
+    },
     "core": {
       "description": "Core DOM node, range, event, collection, and geometry classes used throughout dawm.",
       "keywords": [
@@ -47,7 +66,12 @@
         "geometry",
         "collections",
         "typescript"
-      ]
+      ],
+      "exports": {
+        ".": "./src/index.ts",
+        "./parse": "./src/parse.ts",
+        "./parser": "./src/parser.ts"
+      }
     },
     "css": {
       "description": "CSSOM, CSS Typed OM, parsing, and serialization utilities for dawm.",
@@ -70,50 +94,6 @@
         "parser",
         "wasm",
         "lightningcss",
-        "javascript"
-      ],
-      "main": "./index.js",
-      "module": "./index.js",
-      "types": "./index.d.ts",
-      "files": ["src", "index.js", "index.d.ts", "README.md", "LICENSE"],
-      "exports": {
-        ".": "./index.js"
-      },
-      "dependencies": {
-        "debrotli": "^0.1.0"
-      }
-    },
-    "dawm-html-parser": {
-      "name": "dawm-html-parser",
-      "description": "WebAssembly-backed HTML parser package for dawm.",
-      "keywords": [
-        "dawm",
-        "html",
-        "parser",
-        "wasm",
-        "html5",
-        "javascript"
-      ],
-      "main": "./index.js",
-      "module": "./index.js",
-      "types": "./index.d.ts",
-      "files": ["src", "index.js", "index.d.ts", "README.md", "LICENSE"],
-      "exports": {
-        ".": "./index.js"
-      },
-      "dependencies": {
-        "debrotli": "^0.1.0"
-      }
-    },
-    "dawm-xml-parser": {
-      "name": "dawm-xml-parser",
-      "description": "WebAssembly-backed XML parser package for dawm.",
-      "keywords": [
-        "dawm",
-        "xml",
-        "parser",
-        "wasm",
-        "xml5",
         "javascript"
       ],
       "main": "./index.js",
@@ -176,8 +156,37 @@
       ]
     },
     "internal": {
-      "description": "Shared internal utilities and low-level helpers used by dawm workspace packages.",
-      "keywords": ["dawm", "internal", "utilities", "shared", "typescript"]
+      "description": "Central internal API facade and extensible helper surface used across dawm packages.",
+      "keywords": ["dawm", "internal", "facade", "helpers", "typescript"],
+      "dependencies": {
+        "dawm-core": "workspace:0.1.0-rc.9",
+        "dawm-html": "workspace:0.1.0-rc.9",
+        "dawm-shared": "workspace:0.1.0-rc.9",
+        "dawm-webidl": "workspace:0.1.0-rc.9"
+      }
+    },
+    "shared": {
+      "description": "Workspace-agnostic helper primitives extracted from dawm-internal for reuse across packages.",
+      "keywords": ["dawm", "shared", "helpers", "primordials", "typescript"],
+      "exports": {
+        ".": "./src/index.ts",
+        "./bind-all": "./src/bind_all.ts",
+        "./codec": "./src/Codec.ts",
+        "./collection-helpers": "./src/collection_helpers.ts",
+        "./collections/linked-list": "./src/collections/LinkedList.ts",
+        "./constants": "./src/constants.ts",
+        "./decorators/mixin": "./src/decorators/mixin.ts",
+        "./decorators/to-string-tag": "./src/decorators/to_string_tag.ts",
+        "./define-constants": "./src/define_constants.ts",
+        "./define-getters": "./src/define_getters.ts",
+        "./get-native-symbol": "./src/get_native_symbol.ts",
+        "./inspect": "./src/inspect.ts",
+        "./keys": "./src/keys.ts",
+        "./primordials": "./src/primordials.ts",
+        "./readonly": "./src/readonly.ts",
+        "./symbols": "./src/symbols.ts",
+        "./types": "./src/types.ts"
+      }
     },
     "navigator": {
       "description": "Navigator and history-related APIs for dawm runtime environments.",
@@ -200,6 +209,18 @@
         "web-apis",
         "typescript"
       ]
+    },
+    "testing": {
+      "description": "Internal test helpers and fixture utilities for the dawm monorepo.",
+      "keywords": ["dawm", "testing", "fixtures", "internal", "typescript"],
+      "exports": {
+        ".": "./src/index.ts",
+        "./fixtures": "./src/fixtures.ts",
+        "./utils": "./src/utils.ts"
+      },
+      "manifest": {
+        "private": true
+      }
     },
     "tree": {
       "description": "DOM tree construction, traversal, and selector helpers for dawm.",
@@ -256,6 +277,11 @@
         "networking",
         "typescript"
       ],
+      "dependencies": {
+        "dawm-core": "workspace:0.1.0-rc.9",
+        "dawm-dom": "workspace:0.1.0-rc.9",
+        "dawm-internal": "workspace:0.1.0-rc.9"
+      },
       "readme": {
         "mode": "preserve"
       },
@@ -265,7 +291,15 @@
     },
     "xml": {
       "description": "XML document and serialization utilities for the dawm DOM toolkit.",
-      "keywords": ["dawm", "xml", "serializer", "document", "dom", "typescript"]
+      "keywords": ["dawm", "xml", "serializer", "document", "dom", "typescript"],
+      "exports": {
+        ".": "./src/index.ts",
+        "./xml-document": "./src/XMLDocument.ts",
+        "./xml-serializer": "./src/XMLSerializer.ts"
+      },
+      "dependencies": {
+        "dawm-dom": "workspace:0.1.0-rc.9"
+      }
     },
     "xpath": {
       "description": "XPath parsing, evaluation, and result types for dawm XML documents.",

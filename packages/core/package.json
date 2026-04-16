@@ -728,6 +728,16 @@
       },
       "default": "./esm/parse.js"
     },
+    "./parser": {
+      "types": "./esm/parser.d.ts",
+      "source": "./src/parser.ts",
+      "deno": "./src/parser.ts",
+      "require": {
+        "types": "./cjs/parser.d.ts",
+        "default": "./cjs/parser.js"
+      },
+      "default": "./esm/parser.js"
+    },
     "./processing-instruction": {
       "types": "./esm/ProcessingInstruction.d.ts",
       "source": "./src/ProcessingInstruction.ts",
@@ -813,11 +823,9 @@
     "dawm-css": "workspace:0.1.0-rc.9",
     "dawm-fetch": "workspace:0.1.0-rc.9",
     "dawm-html": "workspace:0.1.0-rc.9",
-    "dawm-html-parser": "workspace:0.1.0-rc.9",
     "dawm-internal": "workspace:0.1.0-rc.9",
     "dawm-tree": "workspace:0.1.0-rc.9",
     "dawm-view": "workspace:0.1.0-rc.9",
-    "dawm-webidl": "workspace:0.1.0-rc.9",
-    "dawm-xml-parser": "workspace:0.1.0-rc.9"
+    "dawm-webidl": "workspace:0.1.0-rc.9"
   }
 }

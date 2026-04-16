@@ -31,7 +31,7 @@ import {
   ComputedStylePropertyMap,
 } from "dawm-css/styles/computed-style-property-map";
 import { hydrateDocumentCSS } from "dawm-css/hydrate";
-import { parse_frag } from "dawm-html-parser";
+import { parse_frag } from "./parser.ts";
 import { buildDocumentTreeFast } from "dawm-tree/tree";
 import { toWireDoc } from "dawm-tree/wire";
 import { resolveFragmentOptions } from "./options.ts";

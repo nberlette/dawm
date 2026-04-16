@@ -9,8 +9,7 @@ import "./ProcessingInstruction.ts";
 import "./Text.ts";
 import { DocumentFragment } from "./DocumentFragment.ts";
 import type { Document, HTMLDocument, XMLDocument } from "./Document.ts";
-import { parse_frag, parse_html } from "dawm-html-parser";
-import { parse_xml } from "dawm-xml-parser";
+import { parse_frag, parse_html, parse_xml } from "./parser.ts";
 import {
   type FragmentParseOptions,
   type ParseOptions,
