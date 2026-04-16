@@ -1,0 +1,12 @@
+{
+  "name": "dawm-testing",
+  "version": "0.1.0-rc.9",
+  "description": "Internal test helpers and fixture utilities for the dawm monorepo.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./fixtures": "./fixtures.ts",
+    "./utils": "./utils.ts"
+  }
+}

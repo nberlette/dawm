@@ -6,7 +6,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import { dirname, extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface TextFixture {
@@ -21,9 +21,9 @@ export interface FixtureLoadOptions {
   requireOutput?: boolean;
 }
 
-const SRC_DIR = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(SRC_DIR, "../../..");
-const TESTDATA_DIR = join(REPO_ROOT, "testdata");
+const SUPPORT_DIR = dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = dirname(SUPPORT_DIR);
+const TESTDATA_DIR = join(ROOT_DIR, "testdata");
 const UPDATE_FIXTURES = Deno.env.get("UPDATE_TEST_FIXTURES") === "1";
 
 function walkFiles(dir: string): string[] {
@@ -69,7 +69,7 @@ export function loadTextFixtures(
     const outputPath = `${absPath}.out`;
     if (requireOutput && !existsSync(outputPath) && !UPDATE_FIXTURES) {
       throw new Error(
-        `Missing expected fixture output: ${relative(REPO_ROOT, outputPath)}`,
+        `Missing expected fixture output: ${relative(ROOT_DIR, outputPath)}`,
       );
     }
     return {
@@ -142,8 +142,8 @@ export function assertFixtureOutput(
     expected,
     [
       `Fixture output mismatch for: ${fixture.relPath}`,
-      `Input: ${relative(REPO_ROOT, fixture.absPath)}`,
-      `Expected: ${relative(REPO_ROOT, fixture.outputPath)}`,
+      `Input: ${relative(ROOT_DIR, fixture.absPath)}`,
+      `Expected: ${relative(ROOT_DIR, fixture.outputPath)}`,
       `To update snapshots: UPDATE_TEST_FIXTURES=1 deno test ...`,
     ].join("\n"),
   );

@@ -1,0 +1,29 @@
+{
+  "name": "dawm-monorepo",
+  "version": "0.1.0-rc.9",
+  "license": "MIT",
+  "author": {
+    "name": "Nicholas Berlette",
+    "email": "nick@berlette.com",
+    "url": "https://github.com/nberlette"
+  },
+  "private": true,
+  "workspaces": [
+    "./packages/*"
+  ],
+  "dependencies": {
+    "@decorators/alias": "jsr:^0.1.2",
+    "@iter/weak-map": "jsr:^0.1.0",
+    "@nick/atob": "jsr:^0.3.0",
+    "@nick/storage": "jsr:^0.1.0",
+    "@nick/url": "jsr:^0.1.2",
+    "@nick/utf8": "jsr:^0.4.1",
+    "@std/media-types": "jsr:^1.1.0",
+    "@std/semver": "jsr:^1.0.0",
+    "@type/is": "jsr:^0.2.0",
+    "debrotli": "^0.1.0"
+  },
+  "devDependencies": {
+    "dawm-testing": "file:./test-support"
+  }
+}
