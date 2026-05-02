@@ -1,10 +1,11 @@
-import _, {
+import {
+  _,
   defineConstants,
   defineGetters,
   SymbolToStringTag,
   toStringTag,
-} from "dawm-internal";
-import { DOMRect } from "./geometry/DOMRect.ts";
+} from "dawm-shared";
+import { DOMRect } from "../geometry/DOMRect.ts";
 import { AbstractRange } from "./AbstractRange.ts";
 import {
   clampCmp,
@@ -26,9 +27,9 @@ import {
   removeRange,
   splitText,
 } from "./_range_helpers.ts";
-import { DocumentFragment } from "./DocumentFragment.ts";
-import { Node } from "./Node.ts";
-import { DOMException } from "./DOMException.ts";
+import { DocumentFragment } from "../DocumentFragment.ts";
+import { Node } from "../Node.ts";
+import { DOMException } from "../DOMException.ts";
 
 const NODE_BEFORE = 0 as const;
 type NODE_BEFORE = typeof NODE_BEFORE;
@@ -41,12 +42,6 @@ type NODE_BEFORE_AND_AFTER = typeof NODE_BEFORE_AND_AFTER;
 
 const NODE_INSIDE = 3 as const;
 type NODE_INSIDE = typeof NODE_INSIDE;
-
-type NodeCompare =
-  | NODE_BEFORE
-  | NODE_AFTER
-  | NODE_BEFORE_AND_AFTER
-  | NODE_INSIDE;
 
 declare module "dawm-internal" {
   export interface RangeInternal {

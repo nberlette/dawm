@@ -1,6 +1,6 @@
-import { _, SymbolToStringTag, toStringTag } from "dawm-internal";
+import { _, SymbolToStringTag, toStringTag } from "dawm-shared";
 import { AbstractRange } from "./AbstractRange.ts";
-import type { Node } from "./Node.ts";
+import type { Node } from "../Node.ts";
 
 /**
  * Represents a **static** range within a given `Document`, spanning from the

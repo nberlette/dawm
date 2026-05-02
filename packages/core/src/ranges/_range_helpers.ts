@@ -1,10 +1,10 @@
-import { _ } from "dawm-internal";
-import type { Document } from "./Document.ts";
-import type { Node } from "./Node.ts";
-import type { ParentNode } from "./ParentNode.ts";
-import { DOMException } from "./DOMException.ts";
-import { DocumentFragment } from "./DocumentFragment.ts";
-import { Text } from "./Text.ts";
+import { _ } from "dawm-shared";
+import type { Document } from "../Document.ts";
+import type { Node } from "../Node.ts";
+import type { ParentNode } from "../ParentNode.ts";
+import { DOMException } from "../DOMException.ts";
+import { DocumentFragment } from "../DocumentFragment.ts";
+import { Text } from "../Text.ts";
 
 export type Boundary = { container: Node; offset: number };
 
